@@ -95,6 +95,7 @@ export default function AdminSettings() {
         <div style={s.navLinks}>
           <Link href="/admin" style={s.navLink}>儀表板</Link>
           <Link href="/admin/models" style={s.navLink}>模型管理</Link>
+          <Link href="/admin/providers" style={s.navLink}>供應商</Link>
           <Link href="/admin/settings" style={{...s.navLink, color: '#818cf8'}}>設定</Link>
           <Link href="/" style={s.navLink}>前台</Link>
           <button onClick={handleLogout} style={s.logoutBtn}>登出</button>

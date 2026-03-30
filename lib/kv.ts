@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { ModelConfig, AppSettings, DEFAULT_MODELS, DEFAULT_SETTINGS } from './types';
+import { ModelConfig, AppSettings, Provider, DEFAULT_MODELS, DEFAULT_SETTINGS, DEFAULT_PROVIDERS } from './types';
 
 function getSql() {
   const url = process.env.POSTGRES_URL ||
@@ -77,4 +77,21 @@ export async function getAdminPasswordHash(): Promise<string | null> {
 
 export async function setAdminPasswordHash(hash: string): Promise<void> {
   await dbSet('admin_password_hash', hash);
+}
+
+export async function getProviders(): Promise<Provider[]> {
+  try {
+    const raw = await dbGet('providers');
+    if (raw) {
+      const providers: Provider[] = JSON.parse(raw);
+      if (Array.isArray(providers)) {
+        return providers.sort((a, b) => a.order - b.order);
+      }
+    }
+  } catch {}
+  return DEFAULT_PROVIDERS;
+}
+
+export async function setProviders(providers: Provider[]): Promise<void> {
+  await dbSet('providers', JSON.stringify(providers));
 }

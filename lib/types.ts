@@ -1,3 +1,12 @@
+export interface Provider {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  enabled: boolean;
+  order: number;
+}
+
 export interface ModelConfig {
   id: string;
   value: string;
@@ -5,6 +14,7 @@ export interface ModelConfig {
   enabled: boolean;
   isGrok: boolean;
   order: number;
+  providerId?: string; // 關聯的供應商 ID，若未設定則使用全域設定
 }
 
 export interface AppSettings {
@@ -15,6 +25,8 @@ export interface AppSettings {
   rateLimitBurstWindow: number;
   enableEnvKey: boolean;
 }
+
+export const DEFAULT_PROVIDERS: Provider[] = [];
 
 export const DEFAULT_MODELS: ModelConfig[] = [
   { id: '1', value: 'gpt-image-1', label: 'GPT Image 1', enabled: true, isGrok: false, order: 0 },

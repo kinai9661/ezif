@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSettings, getModels } from '../../lib/kv';
+import { getSettings, getModels, getProviders } from '../../lib/kv';
 
 const requestStore = new Map<string, {
   minuteCount: number;
@@ -65,8 +65,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Load settings and models from KV (with fallback to defaults/env)
-  const [settings, models] = await Promise.all([getSettings(), getModels()]);
+  // Load settings, models, and providers from KV
+  const [settings, models, providers] = await Promise.all([getSettings(), getModels(), getProviders()]);
 
   const clientId = getClientIP(req);
   const rateLimitResult = checkRateLimit(
@@ -102,6 +102,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const modelConfig = models.find(m => m.value === model);
   const isGrok = modelConfig ? modelConfig.isGrok : (typeof model === 'string' && model.startsWith('grok-'));
 
+  // Resolve provider-specific API credentials
+  let resolvedBaseUrl = settings.apiBaseUrl || process.env.API_BASE_URL || 'https://ai.ezif.in';
+  let resolvedApiKey = apiKey;
+
+  if (modelConfig?.providerId) {
+    const provider = providers.find(p => p.id === modelConfig.providerId);
+    if (provider && provider.enabled) {
+      resolvedBaseUrl = provider.baseUrl;
+      if (provider.apiKey) {
+        resolvedApiKey = provider.apiKey;
+      }
+    }
+  }
+
   const body: Record<string, unknown> = {
     model: isGrok ? 'grok-imagine-image' : (model || 'gpt-image-1'),
     prompt,
@@ -116,12 +130,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const baseUrl = settings.apiBaseUrl || process.env.API_BASE_URL || 'https://ai.ezif.in';
-    const response = await fetch(`${baseUrl}/v1/images/generations`, {
+    const response = await fetch(`${resolvedBaseUrl}/v1/images/generations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${resolvedApiKey}`,
       },
       body: JSON.stringify(body),
     });
