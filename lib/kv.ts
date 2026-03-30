@@ -1,45 +1,41 @@
+import { neon } from '@neondatabase/serverless';
 import { ModelConfig, AppSettings, DEFAULT_MODELS, DEFAULT_SETTINGS } from './types';
 
-// Upstash Redis REST API - pipeline endpoint
-async function upstashPipeline(commands: unknown[][]): Promise<unknown[]> {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN');
-
-  const res = await fetch(`${url}/pipeline`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(commands),
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(`KV pipeline error: ${JSON.stringify(data)}`);
+function getSql() {
+  const url = process.env.POSTGRES_URL ||
+    process.env.DATABASE_URL ||
+    process.env.KV_REST_API_URL || '';
+  if (!url || !url.startsWith('postgres')) {
+    throw new Error('Missing Neon/Postgres database URL. Please set POSTGRES_URL in environment variables.');
   }
-  // pipeline returns array of {result, error} objects
-  return (data as Array<{result: unknown; error?: string}>).map(item => {
-    if (item.error) throw new Error(`KV command error: ${item.error}`);
-    return item.result;
-  });
+  return neon(url);
 }
 
-async function kvGet(key: string): Promise<unknown> {
-  const results = await upstashPipeline([['GET', key]]);
-  return results[0] ?? null;
+async function ensureTable(): Promise<void> {
+  const sql = getSql();
+  await sql`CREATE TABLE IF NOT EXISTS kv_store (key TEXT PRIMARY KEY, value TEXT NOT NULL)`;
 }
 
-async function kvSet(key: string, value: string): Promise<void> {
-  await upstashPipeline([['SET', key, value]]);
+async function dbGet(key: string): Promise<string | null> {
+  const sql = getSql();
+  await ensureTable();
+  const rows = await sql`SELECT value FROM kv_store WHERE key = ${key}`;
+  if (!rows || rows.length === 0) return null;
+  return rows[0].value as string;
+}
+
+async function dbSet(key: string, value: string): Promise<void> {
+  const sql = getSql();
+  await ensureTable();
+  await sql`INSERT INTO kv_store (key, value) VALUES (${key}, ${value})
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
 }
 
 export async function getModels(): Promise<ModelConfig[]> {
   try {
-    const raw = await kvGet('models');
+    const raw = await dbGet('models');
     if (raw) {
-      const models: ModelConfig[] = typeof raw === 'string' ? JSON.parse(raw) : raw as ModelConfig[];
+      const models: ModelConfig[] = JSON.parse(raw);
       if (Array.isArray(models) && models.length > 0) {
         return models.sort((a, b) => a.order - b.order);
       }
@@ -49,14 +45,14 @@ export async function getModels(): Promise<ModelConfig[]> {
 }
 
 export async function setModels(models: ModelConfig[]): Promise<void> {
-  await kvSet('models', JSON.stringify(models));
+  await dbSet('models', JSON.stringify(models));
 }
 
 export async function getSettings(): Promise<AppSettings> {
   try {
-    const raw = await kvGet('settings');
+    const raw = await dbGet('settings');
     if (raw) {
-      const settings: AppSettings = typeof raw === 'string' ? JSON.parse(raw) : raw as AppSettings;
+      const settings: AppSettings = JSON.parse(raw);
       if (settings && settings.apiBaseUrl) return settings;
     }
   } catch {}
@@ -68,18 +64,17 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function setSettings(settings: AppSettings): Promise<void> {
-  await kvSet('settings', JSON.stringify(settings));
+  await dbSet('settings', JSON.stringify(settings));
 }
 
 export async function getAdminPasswordHash(): Promise<string | null> {
   try {
-    const raw = await kvGet('admin_password_hash');
-    return typeof raw === 'string' ? raw : null;
+    return await dbGet('admin_password_hash');
   } catch {
     return null;
   }
 }
 
 export async function setAdminPasswordHash(hash: string): Promise<void> {
-  await kvSet('admin_password_hash', hash);
+  await dbSet('admin_password_hash', hash);
 }
