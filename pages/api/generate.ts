@@ -101,6 +101,12 @@ function normalizeApiResponse(data: any) {
   if (typeof data === 'string') {
     return { data: [{ url: data }] };
   }
+  if (Array.isArray(data)) {
+    return { data: data.map(item => typeof item === 'string' ? { url: item } : item) };
+  }
+  if (data.image_url) {
+    return { data: [{ url: data.image_url }] };
+  }
   return data;
 }
 

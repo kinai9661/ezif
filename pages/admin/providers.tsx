@@ -14,6 +14,19 @@ export default function AdminProviders() {
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', baseUrl: '', apiKey: '', enabled: true });
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+
+  const TEMPLATES = {
+    supabase: { name: 'Supabase', baseUrl: 'https://gjosebfngzowbcrwzxnw.supabase.co/functions/v1', apiKey: '' },
+    openai: { name: 'OpenAI', baseUrl: 'https://api.openai.com', apiKey: '' },
+    custom: { name: '', baseUrl: '', apiKey: '' },
+  };
+
+  const applyTemplate = (templateKey: string) => {
+    const template = TEMPLATES[templateKey as keyof typeof TEMPLATES];
+    setForm({ ...template, enabled: true });
+    setSelectedTemplate(templateKey);
+  };
 
   useEffect(() => {
     fetch('/api/admin/providers')
@@ -110,6 +123,14 @@ export default function AdminProviders() {
 
             {showForm && (
               <form onSubmit={handleAdd} style={s.form}>
+                <div style={s.templateRow}>
+                  <label style={s.label}>快速模板</label>
+                  <div style={s.templateBtns}>
+                    <button type="button" onClick={() => applyTemplate('supabase')} style={{...s.templateBtn, background: selectedTemplate === 'supabase' ? '#818cf8' : '#334155'}}>Supabase</button>
+                    <button type="button" onClick={() => applyTemplate('openai')} style={{...s.templateBtn, background: selectedTemplate === 'openai' ? '#818cf8' : '#334155'}}>OpenAI</button>
+                    <button type="button" onClick={() => applyTemplate('custom')} style={{...s.templateBtn, background: selectedTemplate === 'custom' ? '#818cf8' : '#334155'}}>自訂</button>
+                  </div>
+                </div>
                 <label style={s.label}>{t('providers.name')}</label>
                 <input
                   value={form.name}
@@ -216,4 +237,7 @@ const s: Record<string, React.CSSProperties> = {
   td: { padding: '12px 16px', color: '#f1f5f9', fontSize: 14 },
   toggleBtn: { padding: '4px 12px', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 },
   deleteBtn: { padding: '4px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 },
+  templateRow: { marginBottom: 16 },
+  templateBtns: { display: 'flex', gap: 8, marginTop: 8 },
+  templateBtn: { padding: '8px 16px', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'background 0.2s' },
 };
