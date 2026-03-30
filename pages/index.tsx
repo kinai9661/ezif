@@ -2,7 +2,9 @@ import { useState } from 'react';
 
 const MODELS = [
   { value: 'gpt-image-1', label: 'GPT Image 1' },
+  { value: 'gpt-image-1.5', label: 'GPT Image 1.5' },
   { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image Preview' },
+  { value: 'grok-image', label: 'Grok' },
 ];
 
 const SIZES = [
