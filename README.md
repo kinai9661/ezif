@@ -1,23 +1,24 @@
 # AI 圖片生成器
 
-專業的 AI 圖片生成網站，支援 GPT-Image-1 和 Gemini 3.1 Flash Image Preview 模型。
+專業的 AI 圖片生成網站，支援多個 API 供應商和多種 AI 模型。
 
 ## 功能特色
 
-- 支援 GPT-Image-1 和 Gemini 3.1 Flash Image Preview 模型
+- 支援多個 API 供應商管理
+- 支援多種 AI 模型（GPT-Image-1、Gemini 3.1 Flash Image Preview、Grok 等）
 - 支援多種圖片尺寸：256x256、512x512、1024x1024、1024x1792、1792x1024
 - 支援一次生成多張圖片
 - 支援 API Key 輸入（本地端處理，不儲存）
 - 支援使用伺服器端環境變數的 API Key
 - 支援圖片下載
 - 專業的深色 UI 設計
-- **後台管理系統**（模型管理、API 設定、速率限制）
+- **後台管理系統**（模型管理、供應商管理、API 設定、速率限制）
 
 ## 技術棧
 
 - Next.js 14 (Pages Router)
 - TypeScript
-- Vercel KV（持久化儲存）
+- Neon Postgres（持久化儲存）
 - Vercel 部署
 
 ## 本地開發
@@ -77,21 +78,23 @@ vercel
 
 ### 首次設定
 
-1. 在 Vercel Dashboard 建立 KV 資料庫：
-   - 前往 Storage → Create Database → KV
+1. 在 Vercel Dashboard 建立 Postgres 資料庫（Neon）：
+   - 前往 Storage → Create Database → Postgres
    - 選擇與專案相同的區域
-2. 將 KV 資料庫連結到專案：
-   - 在 KV 設定頁面點擊 "Connect to Project"
+2. 將 Postgres 資料庫連結到專案：
+   - 在 Postgres 設定頁面點擊 "Connect to Project"
    - 選擇你的專案
 3. 設定環境變數（Settings → Environment Variables）：
    - `ADMIN_PASSWORD`: 後台管理員登入密碼
    - `JWT_SECRET`: JWT 簽名金鑰（建議 32 字元以上隨機字串）
+   - `POSTGRES_URL` 或 `DATABASE_URL`: Postgres 連線字串（自動注入）
 4. 重新部署專案使環境變數生效
 
 ### 後台功能
 
-- **模型管理**：新增、編輯、刪除、啟用/停用模型，調整模型順序
-- **API 設定**：設定 API Base URL、API Key、速率限制
+- **模型管理**：新增、編輯、刪除、啟用/停用模型，調整模型順序，關聯供應商
+- **供應商管理**：新增、編輯、刪除 API 供應商，管理供應商 API Key 和基礎 URL
+- **API 設定**：設定全域 API Base URL、API Key、速率限制
 - **密碼變更**：變更管理員登入密碼
 
 ### 預設模型
@@ -114,6 +117,10 @@ vercel
 - `POST /api/admin/models` - 新增模型
 - `PUT /api/admin/models` - 更新模型順序
 - `DELETE /api/admin/models?id=xxx` - 刪除模型
+- `GET /api/admin/providers` - 取得所有供應商
+- `POST /api/admin/providers` - 新增供應商
+- `PUT /api/admin/providers` - 更新供應商
+- `DELETE /api/admin/providers` - 刪除供應商
 - `GET /api/admin/settings` - 取得設定
 - `PUT /api/admin/settings` - 更新設定
 
@@ -135,9 +142,9 @@ vercel
 |---------|------|------|
 | `ADMIN_PASSWORD` | 是 | 後台管理員登入密碼 |
 | `JWT_SECRET` | 是 | JWT 簽名金鑰（建議 32 字元以上） |
-| `KV_REST_API_URL` | 自動 | Vercel KV URL（連結 KV 後自動注入） |
-| `KV_REST_API_TOKEN` | 自動 | Vercel KV Token（連結 KV 後自動注入） |
+| `POSTGRES_URL` 或 `DATABASE_URL` | 是 | Neon Postgres 連線字串（連結 Postgres 後自動注入） |
 | `API_KEY` | 否 | 預設 API Key（可在後台設定覆蓋） |
+| `API_BASE_URL` | 否 | 預設 API 基礎 URL（可在後台設定覆蓋） |
 
 ## 授權
 
