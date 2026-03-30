@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { ModelConfig, AppSettings, Provider, DEFAULT_MODELS, DEFAULT_SETTINGS, DEFAULT_PROVIDERS } from './types';
+import { ModelConfig, AppSettings, Provider, AdminUser, AuditLog, DEFAULT_MODELS, DEFAULT_SETTINGS, DEFAULT_PROVIDERS } from './types';
 
 function getSql() {
   const url = process.env.POSTGRES_URL ||
@@ -94,4 +94,36 @@ export async function getProviders(): Promise<Provider[]> {
 
 export async function setProviders(providers: Provider[]): Promise<void> {
   await dbSet('providers', JSON.stringify(providers));
+}
+
+export async function getAdminUsers(): Promise<AdminUser[]> {
+  try {
+    const raw = await dbGet('admin_users');
+    if (raw) {
+      const users: AdminUser[] = JSON.parse(raw);
+      if (Array.isArray(users)) return users;
+    }
+  } catch {}
+  return [];
+}
+
+export async function setAdminUsers(users: AdminUser[]): Promise<void> {
+  await dbSet('admin_users', JSON.stringify(users));
+}
+
+export async function getAuditLogs(limit: number = 100): Promise<AuditLog[]> {
+  try {
+    const raw = await dbGet('audit_logs');
+    if (raw) {
+      const logs: AuditLog[] = JSON.parse(raw);
+      if (Array.isArray(logs)) return logs.slice(-limit);
+    }
+  } catch {}
+  return [];
+}
+
+export async function addAuditLog(log: AuditLog): Promise<void> {
+  const logs = await getAuditLogs(1000);
+  logs.push(log);
+  await dbSet('audit_logs', JSON.stringify(logs.slice(-1000)));
 }

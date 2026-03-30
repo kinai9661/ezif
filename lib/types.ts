@@ -34,6 +34,28 @@ export interface AppSettings {
   enableIpWhitelist: boolean;
 }
 
+export interface AdminUser {
+  id: string;
+  username: string;
+  passwordHash: string;
+  role: 'admin' | 'editor' | 'viewer';
+  enabled: boolean;
+  createdAt: number;
+  lastLogin?: number;
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  username: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  details?: Record<string, unknown>;
+  timestamp: number;
+  ipAddress: string;
+}
+
 export const DEFAULT_PROVIDERS: Provider[] = [];
 
 export const DEFAULT_MODELS: ModelConfig[] = [
