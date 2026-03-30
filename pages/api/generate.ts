@@ -195,24 +195,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-     const headers: Record<string, string> = {
-       'Content-Type': 'application/json',
-     };
-     
-     if (modelConfig?.providerId) {
-       const provider = providers.find(p => p.id === modelConfig.providerId);
-       if (provider?.name?.toLowerCase().includes('supabase')) {
-         headers['Authorization'] = resolvedApiKey;
-       } else {
-         headers['Authorization'] = `Bearer ${resolvedApiKey}`;
-       }
-     } else {
-       headers['Authorization'] = `Bearer ${resolvedApiKey}`;
-     }
-
      const response = await fetch(`${resolvedBaseUrl}/v1/images/generations`, {
        method: 'POST',
-       headers,
+       headers: {
+         'Content-Type': 'application/json',
+         Authorization: `Bearer ${resolvedApiKey}`,
+       },
        body: JSON.stringify(body),
      });
 
