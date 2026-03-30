@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const MODELS = [
-  { value: 'gpt-image-1', label: 'GPT Image 1' },
-  { value: 'gpt-image-1.5', label: 'GPT Image 1.5' },
-  { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro' },
-  { value: 'grok-image', label: 'Grok' },
+const DEFAULT_MODELS = [
+  { value: 'gpt-image-1', label: 'GPT Image 1', isGrok: false },
+  { value: 'gpt-image-1.5', label: 'GPT Image 1.5', isGrok: false },
+  { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro', isGrok: false },
+  { value: 'grok-image', label: 'Grok', isGrok: true },
 ];
 
 const SIZES = [
@@ -37,6 +37,7 @@ interface ApiResp {
 }
 
 export default function Home() {
+  const [models, setModels] = useState(DEFAULT_MODELS);
   const [apiKey, setApiKey] = useState('');
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('gpt-image-1');
@@ -56,6 +57,17 @@ export default function Home() {
   const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {
+    // Load models from API
+    fetch('/api/public/models')
+      .then(r => r.json())
+      .then(data => {
+        if (data.models && data.models.length > 0) {
+          setModels(data.models);
+          // Set default model to first enabled one
+          setModel(data.models[0].value);
+        }
+      })
+      .catch(() => {}); // silently fall back to DEFAULT_MODELS
     try {
       const h = localStorage.getItem('ph'); if (h) setHistory(JSON.parse(h));
       const r = localStorage.getItem('gr'); if (r) setRecords(JSON.parse(r));
@@ -307,7 +319,7 @@ export default function Home() {
             <div className="fg">
               <label>模型</label>
               <select value={model} onChange={e => setModel(e.target.value)}>
-                {MODELS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                {models.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             <div className="fg">
