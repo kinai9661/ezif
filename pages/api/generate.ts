@@ -215,12 +215,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     body.response_format = 'b64_json';
     if (aspectRatio) body.aspect_ratio = aspectRatio;
   } else {
+    const provider = modelConfig?.providerId ? providers.find(p => p.id === modelConfig.providerId) : null;
+    
     if (size) {
-      const provider = modelConfig?.providerId ? providers.find(p => p.id === modelConfig.providerId) : null;
       const sizeParams = convertSizeToProvider(size, provider?.sizeFormat);
       Object.assign(body, sizeParams);
     }
+    if (aspectRatio) body.aspect_ratio = aspectRatio;
     if (n) body.n = Number(n);
+    
+    if (provider?.name?.toLowerCase().includes('supabase')) {
+      body.response_format = 'url';
+      if (req.body.resolution) body.resolution = req.body.resolution;
+    }
   }
 
   try {
