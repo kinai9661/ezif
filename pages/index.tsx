@@ -264,8 +264,10 @@ export default function Home() {
       if (imgSrc) setTimeout(() => download(imgSrc, i), i * 300);
     });
 
-  const getImgSrc = (img: ImageResult) =>
-    img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : '');
+  const getImgSrc = (img: ImageResult | string) => {
+    if (typeof img === 'string') return img;
+    return img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : '');
+  };
 
   const formatTs = (ms: number) =>
     new Date(ms).toLocaleString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
