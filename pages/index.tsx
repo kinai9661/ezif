@@ -19,6 +19,16 @@ interface ImageResult {
   b64_json?: string;
 }
 
+interface ApiResponse {
+  data?: ImageResult[];
+  created?: number;
+  model?: string;
+  usage?: {
+    prompt_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
 export default function Home() {
   const [apiKey, setApiKey] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -30,6 +40,8 @@ export default function Home() {
   const [error, setError] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [useEnvKey, setUseEnvKey] = useState(false);
+  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) { setError('請輸入提示詞'); return; }
@@ -44,6 +56,7 @@ export default function Home() {
         body: JSON.stringify({ prompt, model, size: size || undefined, n, apiKey, useEnvKey }),
       });
       const data = await res.json();
+      setApiResponse(data);
       if (!res.ok) { setError(data.error || '生成失敗'); return; }
       setImages(data.data || []);
     } catch (e: unknown) {
@@ -188,6 +201,50 @@ export default function Home() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {apiResponse && (
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <label style={{ margin: 0 }}>API 輸出分析</label>
+              <button
+                className="dl-btn"
+                onClick={() => setShowAnalysis(!showAnalysis)}
+              >
+                {showAnalysis ? '隱藏' : '顯示'}
+              </button>
+            </div>
+            {showAnalysis && (
+              <pre style={{
+                background: 'rgba(0,0,0,0.3)',
+                padding: '16px',
+                borderRadius: '8px',
+                overflow: 'auto',
+                fontSize: '0.85rem',
+                color: '#a5b4fc',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all'
+              }}>
+                {JSON.stringify(apiResponse, null, 2)}
+              </pre>
+            )}
+            {apiResponse.model && (
+              <p className="hint" style={{ marginTop: '12px' }}>
+                📌 使用模型: {apiResponse.model}
+              </p>
+            )}
+            {apiResponse.created && (
+              <p className="hint">
+                🕐 建立時間: {new Date(apiResponse.created * 1000).toLocaleString('zh-TW')}
+              </p>
+            )}
+            {apiResponse.usage && (
+              <p className="hint">
+                📊 Token 用量: {apiResponse.usage.total_tokens || 'N/A'}
+                {apiResponse.usage.prompt_tokens && ` (Prompt: ${apiResponse.usage.prompt_tokens})`}
+              </p>
+            )}
           </div>
         )}
 
