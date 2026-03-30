@@ -11,29 +11,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!isAuthenticated(req)) return res.status(401).json({ error: 'Unauthorized' });
 
   if (req.method === 'GET') {
-    const models = await getModels();
-    return res.status(200).json({ models });
+    try {
+      const models = await getModels();
+      return res.status(200).json({ models });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ error: '讀取模型失敗：' + message });
+    }
   }
 
   if (req.method === 'POST') {
     const { value, label, enabled = true, isGrok = false } = req.body || {};
     if (!value || !label) return res.status(400).json({ error: '請輸入模型 value 與顯示名稱' });
 
-    const models = await getModels();
-    if (models.find(m => m.value === value)) {
-      return res.status(400).json({ error: '模型 value 已存在' });
-    }
+    try {
+      const models = await getModels();
+      if (models.find(m => m.value === value)) {
+        return res.status(400).json({ error: '模型 value 已存在' });
+      }
 
-    const newModel: ModelConfig = {
-      id: generateId(),
-      value,
-      label,
-      enabled,
-      isGrok,
-      order: models.length,
-    };
-    await setModels([...models, newModel]);
-    return res.status(201).json({ model: newModel });
+      const newModel: ModelConfig = {
+        id: generateId(),
+        value,
+        label,
+        enabled,
+        isGrok,
+        order: models.length,
+      };
+      await setModels([...models, newModel]);
+      return res.status(201).json({ model: newModel });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ error: '新增模型失敗：' + message });
+    }
   }
 
   if (req.method === 'PUT') {
@@ -47,23 +57,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: '每個模型需要 id、value、label' });
       }
     }
-    // Re-assign order based on array index
-    const reordered = updatedModels.map((m, i) => ({ ...m, order: i }));
-    await setModels(reordered);
-    return res.status(200).json({ models: reordered });
+    try {
+      // Re-assign order based on array index
+      const reordered = updatedModels.map((m, i) => ({ ...m, order: i }));
+      await setModels(reordered);
+      return res.status(200).json({ models: reordered });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ error: '儲存模型失敗：' + message });
+    }
   }
 
   if (req.method === 'DELETE') {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: '需要提供模型 id' });
 
-    const models = await getModels();
-    const filtered = models.filter(m => m.id !== id);
-    if (filtered.length === models.length) {
-      return res.status(404).json({ error: '找不到此模型' });
+    try {
+      const models = await getModels();
+      const filtered = models.filter(m => m.id !== id);
+      if (filtered.length === models.length) {
+        return res.status(404).json({ error: '找不到此模型' });
+      }
+      await setModels(filtered.map((m, i) => ({ ...m, order: i })));
+      return res.status(200).json({ ok: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ error: '刪除模型失敗：' + message });
     }
-    await setModels(filtered.map((m, i) => ({ ...m, order: i })));
-    return res.status(200).json({ ok: true });
   }
 
   res.status(405).json({ error: 'Method not allowed' });
