@@ -1,40 +1,30 @@
 import { ModelConfig, AppSettings, DEFAULT_MODELS, DEFAULT_SETTINGS } from './types';
 
-// Direct Upstash Redis REST API client
-async function kvGet(key: string): Promise<unknown> {
+// Direct Upstash Redis REST API client using pipeline format
+async function upstash(command: unknown[]): Promise<unknown> {
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) throw new Error('Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN');
 
-  const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`KV GET failed: ${res.status} ${res.statusText}`);
-  const data = await res.json();
-  return data.result ?? null;
-}
-
-async function kvSet(key: string, value: string): Promise<void> {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN');
-
-  // Upstash REST API: POST /set/{key}/{value}
-  // Value must be URL-encoded when passed in the path
-  const res = await fetch(`${url}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}`, {
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(command),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`KV SET failed: ${res.status} ${text}`);
+
+  const data = await res.json();
+  if (!res.ok || data.error) {
+    throw new Error(`KV error: ${JSON.stringify(data)}`);
   }
+  return data.result ?? null;
 }
 
 export async function getModels(): Promise<ModelConfig[]> {
   try {
-    const raw = await kvGet('models');
+    const raw = await upstash(['GET', 'models']);
     if (raw) {
       const models: ModelConfig[] = typeof raw === 'string' ? JSON.parse(raw) : raw as ModelConfig[];
       if (Array.isArray(models) && models.length > 0) {
@@ -46,12 +36,12 @@ export async function getModels(): Promise<ModelConfig[]> {
 }
 
 export async function setModels(models: ModelConfig[]): Promise<void> {
-  await kvSet('models', JSON.stringify(models));
+  await upstash(['SET', 'models', JSON.stringify(models)]);
 }
 
 export async function getSettings(): Promise<AppSettings> {
   try {
-    const raw = await kvGet('settings');
+    const raw = await upstash(['GET', 'settings']);
     if (raw) {
       const settings: AppSettings = typeof raw === 'string' ? JSON.parse(raw) : raw as AppSettings;
       if (settings && settings.apiBaseUrl) return settings;
@@ -65,12 +55,12 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function setSettings(settings: AppSettings): Promise<void> {
-  await kvSet('settings', JSON.stringify(settings));
+  await upstash(['SET', 'settings', JSON.stringify(settings)]);
 }
 
 export async function getAdminPasswordHash(): Promise<string | null> {
   try {
-    const raw = await kvGet('admin_password_hash');
+    const raw = await upstash(['GET', 'admin_password_hash']);
     return typeof raw === 'string' ? raw : null;
   } catch {
     return null;
@@ -78,5 +68,5 @@ export async function getAdminPasswordHash(): Promise<string | null> {
 }
 
 export async function setAdminPasswordHash(hash: string): Promise<void> {
-  await kvSet('admin_password_hash', hash);
+  await upstash(['SET', 'admin_password_hash', hash]);
 }
