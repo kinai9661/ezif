@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
+import { signIn } from 'next-auth/react';
 
 const DEFAULT_MODELS = [
   { value: 'gpt-image-1', label: 'GPT Image 1', isGrok: false },
@@ -25,6 +27,91 @@ const TEMPLATES = [
   { label: '動漫', prompt: 'Anime illustration, Japanese animation style, vibrant colors, detailed' },
 ];
 
+const i18n = {
+  'zh-TW': {
+    apiKey: 'API Key',
+    enterApiKey: '輸入 API Key',
+    useServerKey: '使用伺服器端 API Key',
+    keyLocal: 'Key 僅在本地使用，不會上傳',
+    templates: '提示詞',
+    history: '歷史記錄',
+    selectHistory: '選擇歷史...',
+    clear: '清除',
+    prompt: 'Prompt',
+    promptPlaceholder: '描述你想要生成的圖片...',
+    chars: '字',
+    settings: '生成設定',
+    model: '模型',
+    size: '尺寸',
+    quantity: '數量 (1-4)',
+    generate: '✨ 生成圖片',
+    generating: '生成中...',
+    shortcut: '快捷鍵：Ctrl + Enter',
+    results: '生成結果',
+    images: '張',
+    batchDownload: '批次下載',
+    download: '下載',
+    analysis: 'API 分析',
+    show: '顯示',
+    hide: '隱藏',
+    tokens: 'Tokens',
+    generationHistory: '生成歷史',
+    noRecords: '尚無生成記錄',
+    delete: '刪除',
+    noResults: '輸入提示詞並點擊「生成圖片」開始',
+    admin: '後台',
+    language: '語言',
+    enterPrompt: '請輸入提示詞',
+    enterApiKeyError: '請輸入 API Key',
+    generationFailed: '生成失敗',
+    unknownError: '未知錯誤',
+    remaining: '剩餘',
+    of: '/',
+    times: '次',
+  },
+  'en': {
+    apiKey: 'API Key',
+    enterApiKey: 'Enter API Key',
+    useServerKey: 'Use Server API Key',
+    keyLocal: 'Key is only used locally and will not be uploaded',
+    templates: 'Templates',
+    history: 'History',
+    selectHistory: 'Select history...',
+    clear: 'Clear',
+    prompt: 'Prompt',
+    promptPlaceholder: 'Describe the image you want to generate...',
+    chars: 'chars',
+    settings: 'Generation Settings',
+    model: 'Model',
+    size: 'Size',
+    quantity: 'Quantity (1-4)',
+    generate: '✨ Generate Image',
+    generating: 'Generating...',
+    shortcut: 'Shortcut: Ctrl + Enter',
+    results: 'Results',
+    images: 'images',
+    batchDownload: 'Batch Download',
+    download: 'Download',
+    analysis: 'API Analysis',
+    show: 'Show',
+    hide: 'Hide',
+    tokens: 'Tokens',
+    generationHistory: 'Generation History',
+    noRecords: 'No generation records',
+    delete: 'Delete',
+    noResults: 'Enter a prompt and click "Generate Image" to start',
+    admin: 'Admin',
+    language: 'Language',
+    enterPrompt: 'Please enter a prompt',
+    enterApiKeyError: 'Please enter an API Key',
+    generationFailed: 'Generation failed',
+    unknownError: 'Unknown error',
+    remaining: 'Remaining',
+    of: '/',
+    times: 'times',
+  },
+};
+
 interface ImageResult { url?: string; b64_json?: string; }
 interface GenRecord {
   id: string; prompt: string; model: string; size: string;
@@ -37,24 +124,28 @@ interface ApiResp {
 }
 
 export default function Home() {
-  const [models, setModels] = useState(DEFAULT_MODELS);
-  const [apiKey, setApiKey] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('gpt-image-1');
-  const [size, setSize] = useState('');
-  const [n, setN] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [useEnvKey, setUseEnvKey] = useState(false);
-  const [apiResp, setApiResp] = useState<ApiResp | null>(null);
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
-  const [records, setRecords] = useState<GenRecord[]>([]);
-  const [activeTab, setActiveTab] = useState('generate');
-  const [lightbox, setLightbox] = useState('');
-  const [currentRec, setCurrentRec] = useState<GenRecord | null>(null);
-  const [remaining, setRemaining] = useState<number | null>(null);
+   const router = useRouter();
+   const [locale, setLocale] = useState<'zh-TW' | 'en'>('zh-TW');
+   const t = (key: keyof typeof i18n['zh-TW']) => i18n[locale][key];
+   
+   const [models, setModels] = useState(DEFAULT_MODELS);
+   const [apiKey, setApiKey] = useState('');
+   const [prompt, setPrompt] = useState('');
+   const [model, setModel] = useState('gpt-image-1');
+   const [size, setSize] = useState('');
+   const [n, setN] = useState(1);
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState('');
+   const [showKey, setShowKey] = useState(false);
+   const [useEnvKey, setUseEnvKey] = useState(false);
+   const [apiResp, setApiResp] = useState<ApiResp | null>(null);
+   const [showAnalysis, setShowAnalysis] = useState(false);
+   const [history, setHistory] = useState<string[]>([]);
+   const [records, setRecords] = useState<GenRecord[]>([]);
+   const [activeTab, setActiveTab] = useState('generate');
+   const [lightbox, setLightbox] = useState('');
+   const [currentRec, setCurrentRec] = useState<GenRecord | null>(null);
+   const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     // Load models from API
@@ -120,8 +211,8 @@ export default function Home() {
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) { setError('請輸入提示詞'); return; }
-    if (!useEnvKey && !apiKey.trim()) { setError('請輸入 API Key'); return; }
+    if (!prompt.trim()) { setError(t('enterPrompt')); return; }
+    if (!useEnvKey && !apiKey.trim()) { setError(t('enterApiKeyError')); return; }
     setError(''); setLoading(true);
     const t0 = Date.now();
     try {
@@ -134,7 +225,7 @@ export default function Home() {
       if (rem !== null) setRemaining(Number(rem));
       const data: ApiResp = await res.json();
       setApiResp(data);
-      if (!res.ok) { setError(data.error || '生成失敗'); return; }
+      if (!res.ok) { setError(data.error || t('generationFailed')); return; }
       const rec: GenRecord = {
         id: Date.now().toString(), prompt, model,
         size: size || '預設', n,
@@ -144,7 +235,7 @@ export default function Home() {
       addRecord(rec); setCurrentRec(rec); addHistory(prompt);
       setActiveTab('generate');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '未知錯誤');
+      setError(e instanceof Error ? e.message : t('unknownError'));
     } finally { setLoading(false); }
   };
 
@@ -245,21 +336,31 @@ export default function Home() {
         <div className="hdr-r">
           {remaining !== null && (
             <span className={`rbadge${remaining < 5 ? ' low' : ''}`}>
-              剩餘 {remaining}/20 次
+              {t('remaining')} {remaining}{t('of')}20 {t('times')}
             </span>
           )}
+          <select value={locale} onChange={e => setLocale(e.target.value as 'zh-TW' | 'en')} style={{padding: '6px 10px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)', borderRadius: '6px', color: '#e2e8f0', fontSize: '.85rem', cursor: 'pointer'}}>
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">English</option>
+          </select>
+          <button onClick={() => signIn('google')} style={{padding: '6px 12px', background: 'rgba(66,133,244,.2)', border: '1px solid rgba(66,133,244,.4)', borderRadius: '6px', color: '#4285f4', fontSize: '.85rem', cursor: 'pointer', transition: 'all .15s'}}>
+            🔐 Google
+          </button>
+          <button onClick={() => router.push('/admin')} style={{padding: '6px 12px', background: 'rgba(124,58,237,.2)', border: '1px solid rgba(124,58,237,.4)', borderRadius: '6px', color: '#a78bfa', fontSize: '.85rem', cursor: 'pointer', transition: 'all .15s'}}>
+            ⚙️ {t('admin')}
+          </button>
         </div>
       </header>
 
       <div className="layout">
         <aside className="sidebar">
-          <div className="slabel">API 設定</div>
+          <div className="slabel">API {t('settings')}</div>
           <div className="fg">
-            <label>API Key</label>
+            <label>{t('apiKey')}</label>
             <div className="kw">
               <input
                 type={showKey ? 'text' : 'password'}
-                placeholder="輸入 API Key"
+                placeholder={t('enterApiKey')}
                 value={apiKey}
                 onChange={e => saveKey(e.target.value)}
               />
@@ -273,12 +374,12 @@ export default function Home() {
                 checked={useEnvKey}
                 onChange={e => setUseEnvKey(e.target.checked)}
               />
-              <span>使用伺服器端 API Key</span>
+              <span>{t('useServerKey')}</span>
             </label>
-            {!useEnvKey && <div className="khint">Key 僅在本地使用，不會上傳</div>}
+            {!useEnvKey && <div className="khint">{t('keyLocal')}</div>}
           </div>
 
-          <div className="slabel">提示詞</div>
+          <div className="slabel">{t('templates')}</div>
           <div className="twrap">
             {TEMPLATES.map(t => (
               <button key={t.label} className="tbtn" onClick={() => setPrompt(p => p ? `${p}, ${t.prompt}` : t.prompt)}>
@@ -288,66 +389,66 @@ export default function Home() {
           </div>
           {history.length > 0 && (
             <div className="fg">
-              <label>歷史記錄</label>
+              <label>{t('history')}</label>
               <div className="hrow">
                 <select
                   className="hbtn"
                   value=""
                   onChange={e => { if (e.target.value) setPrompt(e.target.value); }}
                 >
-                  <option value="">選擇歷史...</option>
+                  <option value="">{t('selectHistory')}</option>
                   {history.map((h, i) => <option key={i} value={h}>{h.slice(0, 50)}...</option>)}
                 </select>
-                <button className="hclear" onClick={clearHistory}>清除</button>
+                <button className="hclear" onClick={clearHistory}>{t('clear')}</button>
               </div>
             </div>
           )}
           <div className="fg">
-            <label>Prompt</label>
+            <label>{t('prompt')}</label>
             <textarea
-              placeholder="描述你想要生成的圖片..."
+              placeholder={t('promptPlaceholder')}
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
             />
             <div className="pmeta">
-              <span className="pcount">{prompt.length} 字</span>
+              <span className="pcount">{prompt.length} {t('chars')}</span>
             </div>
           </div>
 
-          <div className="slabel">生成設定</div>
+          <div className="slabel">{t('settings')}</div>
           <div className="fr">
             <div className="fg">
-              <label>模型</label>
+              <label>{t('model')}</label>
               <select value={model} onChange={e => setModel(e.target.value)}>
                 {models.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             <div className="fg">
-              <label>尺寸</label>
+              <label>{t('size')}</label>
               <select value={size} onChange={e => setSize(e.target.value)}>
                 {SIZES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
           </div>
           <div className="fg">
-            <label>數量 (1-4)</label>
+            <label>{t('quantity')}</label>
             <input type="number" min={1} max={4} value={n} onChange={e => setN(Math.min(4, Math.max(1, Number(e.target.value))))} />
           </div>
 
           <button id="gbtn" className="gbtn" onClick={handleGenerate} disabled={loading}>
-            {loading ? <><span className="spin" />生成中...</> : '✨ 生成圖片'}
+            {loading ? <><span className="spin" />{t('generating')}</> : t('generate')}
           </button>
-          <div className="khint">快捷鍵：Ctrl + Enter</div>
+          <div className="khint">{t('shortcut')}</div>
           {error && <div className="ebox">{error}</div>}
         </aside>
 
         <main className="main">
           <div className="tabs">
             <button className={`tab${activeTab === 'generate' ? ' on' : ''}`} onClick={() => setActiveTab('generate')}>
-              生成結果
+              {t('results')}
             </button>
             <button className={`tab${activeTab === 'history' ? ' on' : ''}`} onClick={() => setActiveTab('history')}>
-              歷史記錄 ({records.length})
+              {t('generationHistory')} ({records.length})
             </button>
           </div>
 
@@ -356,8 +457,8 @@ export default function Home() {
               {currentImages.length > 0 ? (
                 <div className="card">
                   <div className="ch">
-                    <span className="ct">生成結果 ({currentImages.length} 張)</span>
-                    <button className="dlbtn" onClick={() => batchDownload(currentRec!.images)}>批次下載</button>
+                    <span className="ct">{t('results')} ({currentImages.length} {t('images')})</span>
+                    <button className="dlbtn" onClick={() => batchDownload(currentRec!.images)}>{t('batchDownload')}</button>
                   </div>
                   <div className="igrid">
                     {currentImages.map((img, i) => {
@@ -367,7 +468,7 @@ export default function Home() {
                           <img src={imgSrc} alt={`Image ${i + 1}`} />
                           <div className="ifoot">
                             <span className="ilabel">#{i + 1}</span>
-                            <button className="dlbtn" onClick={e => { e.stopPropagation(); download(imgSrc, i); }}>下載</button>
+                            <button className="dlbtn" onClick={e => { e.stopPropagation(); download(imgSrc, i); }}>{t('download')}</button>
                           </div>
                         </div>
                       );
@@ -384,22 +485,22 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="card">
-                  <div className="empty">輸入提示詞並點擊「生成圖片」開始</div>
+                  <div className="empty">{t('noResults')}</div>
                 </div>
               )}
 
               {apiResp && (
                 <div className="card">
                   <div className="anah">
-                    <span className="ct">API 分析</span>
+                    <span className="ct">{t('analysis')}</span>
                     <button className="anabtn" onClick={() => setShowAnalysis(v => !v)}>
-                      {showAnalysis ? '隱藏' : '顯示'}
+                      {showAnalysis ? t('hide') : t('show')}
                     </button>
                   </div>
                   {showAnalysis && <pre className="pre">{JSON.stringify(apiResp, null, 2)}</pre>}
-                  {apiResp.model && <span className="metatag">📌 模型: {apiResp.model}</span>}
+                  {apiResp.model && <span className="metatag">📌 {t('model')}: {apiResp.model}</span>}
                   {apiResp.usage && (
-                    <span className="metatag">📊 Tokens: {apiResp.usage.total_tokens || 'N/A'}</span>
+                    <span className="metatag">📊 {t('tokens')}: {apiResp.usage.total_tokens || 'N/A'}</span>
                   )}
                 </div>
               )}
@@ -409,7 +510,7 @@ export default function Home() {
           {activeTab === 'history' && (
             <div className="card">
               <div className="ch">
-                <span className="ct">生成歷史 ({records.length})</span>
+                <span className="ct">{t('generationHistory')} ({records.length})</span>
               </div>
               {records.length > 0 ? (
                 <div className="rlist">
@@ -424,7 +525,7 @@ export default function Home() {
                         <span className="rmtag">{rec.size}</span>
                         <span className="rmtag">{formatDuration(rec.duration)}</span>
                         <span className="rmtag">{formatTs(rec.createdAt)}</span>
-                        <button className="rdel" onClick={e => { e.stopPropagation(); deleteRecord(rec.id); }}>刪除</button>
+                        <button className="rdel" onClick={e => { e.stopPropagation(); deleteRecord(rec.id); }}>{t('delete')}</button>
                       </div>
                       <div className="rprompt">{rec.prompt}</div>
                       <div className="rthumbs">
@@ -436,7 +537,7 @@ export default function Home() {
                   ))}
                 </div>
               ) : (
-                <div className="empty">尚無生成記錄</div>
+                <div className="empty">{t('noRecords')}</div>
               )}
             </div>
           )}
