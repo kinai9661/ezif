@@ -1,8 +1,10 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/router';
+import { useTranslation } from '../../lib/useTranslation';
 
 export default function AdminLogin() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,36 +20,54 @@ export default function AdminLogin() {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || '登入失敗'); return; }
+      if (!res.ok) { setError(data.error || t('login.loginFailed')); return; }
       const redirect = (router.query.redirect as string) || '/admin';
       router.push(redirect);
     } catch {
-      setError('網路錯誤，請稍後再試');
+      setError(t('login.loginFailed'));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleChangeLanguage = (newLocale: string) => {
+    router.push(router.asPath, router.asPath, { locale: newLocale });
+  };
+
   return (
     <div style={styles.bg}>
       <div style={styles.card}>
-        <h1 style={styles.title}>🔐 後台管理</h1>
-        <p style={styles.sub}>請輸入管理員密碼</p>
+        <div style={styles.langSwitcher}>
+          <button
+            onClick={() => handleChangeLanguage('zh-TW')}
+            style={{...styles.langBtn, opacity: locale === 'zh-TW' ? 1 : 0.5}}
+          >
+            繁體中文
+          </button>
+          <button
+            onClick={() => handleChangeLanguage('en')}
+            style={{...styles.langBtn, opacity: locale === 'en' ? 1 : 0.5}}
+          >
+            English
+          </button>
+        </div>
+        <h1 style={styles.title}>🔐 {t('admin.title')}</h1>
+        <p style={styles.sub}>{t('login.title')}</p>
         <form onSubmit={handleSubmit}>
           <input
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder="密碼"
+            placeholder={t('login.password')}
             style={styles.input}
             autoFocus
           />
           {error && <p style={styles.error}>{error}</p>}
           <button type="submit" disabled={loading || !password} style={styles.btn}>
-            {loading ? '登入中...' : '登入'}
+            {loading ? `${t('login.login')}中...` : t('login.login')}
           </button>
         </form>
-        <a href="/" style={styles.back}>← 返回前台</a>
+        <a href="/" style={styles.back}>← {t('common.dashboard')}</a>
       </div>
     </div>
   );
@@ -56,6 +76,8 @@ export default function AdminLogin() {
 const styles: Record<string, React.CSSProperties> = {
   bg: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' },
   card: { background: '#1e293b', borderRadius: 12, padding: '40px 48px', width: '100%', maxWidth: 360, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' },
+  langSwitcher: { display: 'flex', gap: 8, marginBottom: 24, justifyContent: 'center' },
+  langBtn: { padding: '6px 12px', borderRadius: 6, border: '1px solid #475569', background: 'transparent', color: '#94a3b8', fontSize: 12, cursor: 'pointer', transition: 'all 0.2s' },
   title: { color: '#f1f5f9', fontSize: 24, fontWeight: 700, marginBottom: 8, textAlign: 'center' },
   sub: { color: '#94a3b8', fontSize: 14, textAlign: 'center', marginBottom: 24 },
   input: { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#f1f5f9', fontSize: 15, outline: 'none', boxSizing: 'border-box', marginBottom: 8 },

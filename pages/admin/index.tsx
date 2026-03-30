@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { useTranslation } from '../../lib/useTranslation';
 
 interface DashboardData {
   modelCount: number;
@@ -12,6 +13,7 @@ interface DashboardData {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,38 +39,46 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  const handleChangeLanguage = (newLocale: string) => {
+    router.push(router.asPath, router.asPath, { locale: newLocale });
+  };
+
   return (
     <div style={s.bg}>
       <nav style={s.nav}>
-        <span style={s.logo}>⚙️ 後台管理</span>
+        <span style={s.logo}>⚙️ {t('admin.title')}</span>
         <div style={s.navLinks}>
-          <Link href="/admin" style={s.navLink}>儀表板</Link>
-          <Link href="/admin/models" style={s.navLink}>模型管理</Link>
-          <Link href="/admin/providers" style={s.navLink}>供應商</Link>
-          <Link href="/admin/settings" style={s.navLink}>設定</Link>
-          <Link href="/" style={s.navLink}>前台</Link>
-          <button onClick={handleLogout} style={s.logoutBtn}>登出</button>
+          <Link href="/admin" style={s.navLink}>{t('common.dashboard')}</Link>
+          <Link href="/admin/models" style={s.navLink}>{t('common.models')}</Link>
+          <Link href="/admin/providers" style={s.navLink}>{t('common.providers')}</Link>
+          <Link href="/admin/settings" style={s.navLink}>{t('common.settings')}</Link>
+          <Link href="/" style={s.navLink}>{t('common.dashboard')}</Link>
+          <select value={locale} onChange={e => handleChangeLanguage(e.target.value)} style={s.langSelect}>
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">English</option>
+          </select>
+          <button onClick={handleLogout} style={s.logoutBtn}>{t('common.logout')}</button>
         </div>
       </nav>
       <div style={s.content}>
-        <h1 style={s.h1}>儀表板</h1>
+        <h1 style={s.h1}>{t('dashboard.title')}</h1>
         {loading ? (
-          <p style={s.muted}>載入中...</p>
+          <p style={s.muted}>{t('common.loading')}</p>
         ) : data ? (
           <div style={s.grid}>
-            <StatCard label="已設定模型" value={`${data.modelCount} 個`} icon="🤖" />
-            <StatCard label="已啟用模型" value={`${data.enabledCount} 個`} icon="✅" />
-            <StatCard label="每分鐘速率限制" value={`${data.rateLimitPerMinute} 次`} icon="⚡" />
-            <StatCard label="伺服器端 Key" value={data.enableEnvKey ? '已啟用' : '已停用'} icon="🔑" />
+            <StatCard label={t('dashboard.modelsCount')} value={`${data.modelCount} ${locale === 'zh-TW' ? '個' : ''}`} icon="🤖" />
+            <StatCard label={t('dashboard.enabledCount')} value={`${data.enabledCount} ${locale === 'zh-TW' ? '個' : ''}`} icon="✅" />
+            <StatCard label={t('dashboard.rateLimit')} value={`${data.rateLimitPerMinute} ${locale === 'zh-TW' ? '次' : ''}`} icon="⚡" />
+            <StatCard label={t('dashboard.serverKey')} value={data.enableEnvKey ? (locale === 'zh-TW' ? '已啟用' : 'Enabled') : (locale === 'zh-TW' ? '已停用' : 'Disabled')} icon="🔑" />
             <div style={{...s.card, gridColumn: '1 / -1'}}>
-              <div style={s.cardLabel}>API 地址</div>
+              <div style={s.cardLabel}>{t('dashboard.apiUrl')}</div>
               <div style={s.cardValue}>{data.apiBaseUrl}</div>
             </div>
           </div>
         ) : null}
         <div style={s.actions}>
-          <Link href="/admin/models" style={s.actionBtn}>管理模型 →</Link>
-          <Link href="/admin/settings" style={s.actionBtn}>修改設定 →</Link>
+          <Link href="/admin/models" style={s.actionBtn}>{t('dashboard.manageModels')}</Link>
+          <Link href="/admin/settings" style={s.actionBtn}>{t('dashboard.editSettings')}</Link>
         </div>
       </div>
     </div>
@@ -91,6 +101,7 @@ const s: Record<string, React.CSSProperties> = {
   logo: { fontWeight: 700, fontSize: 18, color: '#f1f5f9' },
   navLinks: { display: 'flex', alignItems: 'center', gap: 16 },
   navLink: { color: '#94a3b8', textDecoration: 'none', fontSize: 14 },
+  langSelect: { padding: '4px 8px', borderRadius: 6, border: '1px solid #475569', background: '#0f172a', color: '#94a3b8', fontSize: 13, cursor: 'pointer' },
   logoutBtn: { background: 'none', border: '1px solid #475569', color: '#94a3b8', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 13 },
   content: { maxWidth: 900, margin: '0 auto', padding: '40px 24px' },
   h1: { fontSize: 28, fontWeight: 700, marginBottom: 32, color: '#f1f5f9' },

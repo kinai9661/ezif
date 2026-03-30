@@ -2,9 +2,11 @@ import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Provider } from '../../lib/types';
+import { useTranslation } from '../../lib/useTranslation';
 
 export default function AdminProviders() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,7 +19,7 @@ export default function AdminProviders() {
     fetch('/api/admin/providers')
       .then(r => { if (r.status === 401) { router.push('/admin/login'); } return r.json(); })
       .then(data => { if (data.providers) setProviders(data.providers); })
-      .catch(() => setError('載入供應商失敗'))
+      .catch(() => setError(t('providers.loadFailed')))
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -33,12 +35,12 @@ export default function AdminProviders() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || '新增失敗'); return; }
+      if (!res.ok) { setError(data.error || t('providers.addFailed')); return; }
       setProviders(p => [...p, data.provider]);
       setForm({ name: '', baseUrl: '', apiKey: '', enabled: true });
       setShowForm(false);
-      setSuccess('供應商已新增');
-    } catch { setError('新增失敗'); }
+      setSuccess(t('providers.added'));
+    } catch { setError(t('providers.addFailed')); }
     finally { setSaving(false); }
   };
 
@@ -51,14 +53,14 @@ export default function AdminProviders() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: p.id, enabled: !p.enabled }),
       });
-      if (!res.ok) { setError('更新失敗'); return; }
+      if (!res.ok) { setError(t('providers.updateFailed')); return; }
       setProviders(ps => ps.map(x => x.id === p.id ? { ...x, enabled: !x.enabled } : x));
-    } catch { setError('更新失敗'); }
+    } catch { setError(t('providers.updateFailed')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('確定要刪除此供應商嗎？')) return;
+    if (!confirm(t('providers.confirmDelete'))) return;
     setSaving(true);
     setError('');
     try {
@@ -67,45 +69,48 @@ export default function AdminProviders() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      if (!res.ok) { setError('刪除失敗'); return; }
+      if (!res.ok) { setError(t('providers.deleteFailed')); return; }
       setProviders(ps => ps.filter(p => p.id !== id));
-      setSuccess('供應商已刪除');
-    } catch { setError('刪除失敗'); }
+      setSuccess(t('providers.deleted'));
+    } catch { setError(t('providers.deleteFailed')); }
     finally { setSaving(false); }
   };
 
-  const handleLogout = async () => {
-    await fetch('/api/admin/auth', { method: 'DELETE' });
-    router.push('/admin/login');
+  const handleChangeLanguage = (newLocale: string) => {
+    router.push(router.asPath, router.asPath, { locale: newLocale });
   };
 
   return (
     <div style={s.bg}>
       <nav style={s.nav}>
-        <span style={s.logo}>⚙️ 後台管理</span>
+        <span style={s.logo}>⚙️ {t('admin.title')}</span>
         <div style={s.navLinks}>
-          <Link href="/admin" style={s.navLink}>儀表板</Link>
-          <Link href="/admin/models" style={s.navLink}>模型管理</Link>
-          <Link href="/admin/providers" style={{...s.navLink, color: '#818cf8'}}>供應商</Link>
-          <Link href="/admin/settings" style={s.navLink}>設定</Link>
-          <Link href="/" style={s.navLink}>前台</Link>
-          <button onClick={handleLogout} style={s.logoutBtn}>登出</button>
+          <Link href="/admin" style={s.navLink}>{t('common.dashboard')}</Link>
+          <Link href="/admin/models" style={s.navLink}>{t('common.models')}</Link>
+          <Link href="/admin/providers" style={{...s.navLink, color: '#818cf8'}}>{t('common.providers')}</Link>
+          <Link href="/admin/settings" style={s.navLink}>{t('common.settings')}</Link>
+          <Link href="/" style={s.navLink}>{t('common.dashboard')}</Link>
+          <select value={locale} onChange={e => handleChangeLanguage(e.target.value)} style={s.langSelect}>
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">English</option>
+          </select>
+          <button onClick={() => { fetch('/api/admin/auth', { method: 'DELETE' }); router.push('/admin/login'); }} style={s.logoutBtn}>{t('common.logout')}</button>
         </div>
       </nav>
       <div style={s.content}>
-        <h1 style={s.h1}>API 供應商管理</h1>
-        {loading ? <p style={s.muted}>載入中...</p> : (
+        <h1 style={s.h1}>{t('providers.title')}</h1>
+        {loading ? <p style={s.muted}>{t('common.loading')}</p> : (
           <>
             {error && <p style={s.error}>{error}</p>}
             {success && <p style={s.success}>{success}</p>}
             
             <button onClick={() => setShowForm(!showForm)} style={s.addBtn}>
-              {showForm ? '取消' : '+ 新增供應商'}
+              {showForm ? t('common.cancel') : t('providers.addProvider')}
             </button>
 
             {showForm && (
               <form onSubmit={handleAdd} style={s.form}>
-                <label style={s.label}>供應商名稱</label>
+                <label style={s.label}>{t('providers.name')}</label>
                 <input
                   value={form.name}
                   onChange={e => setForm(f => ({...f, name: e.target.value}))}
@@ -113,7 +118,7 @@ export default function AdminProviders() {
                   placeholder="例：OpenAI"
                   required
                 />
-                <label style={s.label}>API 基礎地址</label>
+                <label style={s.label}>{t('providers.baseUrl')}</label>
                 <input
                   value={form.baseUrl}
                   onChange={e => setForm(f => ({...f, baseUrl: e.target.value}))}
@@ -121,7 +126,7 @@ export default function AdminProviders() {
                   placeholder="https://api.openai.com"
                   required
                 />
-                <label style={s.label}>API Key</label>
+                <label style={s.label}>{t('providers.apiKey')}</label>
                 <input
                   type="password"
                   value={form.apiKey}
@@ -136,11 +141,11 @@ export default function AdminProviders() {
                       checked={form.enabled}
                       onChange={e => setForm(f => ({...f, enabled: e.target.checked}))}
                     />
-                    {' '}啟用此供應商
+                    {' '}{t('providers.enabled')}
                   </label>
                 </div>
                 <button type="submit" disabled={saving} style={s.saveBtn}>
-                  {saving ? '新增中...' : '新增供應商'}
+                  {saving ? `${t('common.add')}中...` : t('providers.addProvider')}
                 </button>
               </form>
             )}
@@ -149,10 +154,10 @@ export default function AdminProviders() {
               <table style={s.table}>
                 <thead>
                   <tr>
-                    <th style={s.th}>名稱</th>
-                    <th style={s.th}>API 地址</th>
-                    <th style={s.th}>狀態</th>
-                    <th style={s.th}>操作</th>
+                    <th style={s.th}>{t('providers.name')}</th>
+                    <th style={s.th}>{t('providers.baseUrl')}</th>
+                    <th style={s.th}>{t('providers.status')}</th>
+                    <th style={s.th}>{t('common.edit')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,18 +170,18 @@ export default function AdminProviders() {
                           onClick={() => handleToggle(p)}
                           style={{...s.toggleBtn, background: p.enabled ? '#10b981' : '#6b7280'}}
                         >
-                          {p.enabled ? '已啟用' : '已停用'}
+                          {p.enabled ? t('providers.enabled') : t('providers.disabled')}
                         </button>
                       </td>
                       <td style={s.td}>
-                        <button onClick={() => handleDelete(p.id)} style={s.deleteBtn}>刪除</button>
+                        <button onClick={() => handleDelete(p.id)} style={s.deleteBtn}>{t('common.delete')}</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            {providers.length === 0 && <p style={s.muted}>尚無供應商，請新增一個</p>}
+            {providers.length === 0 && <p style={s.muted}>{t('providers.noProviders')}</p>}
           </>
         )}
       </div>
@@ -190,6 +195,7 @@ const s: Record<string, React.CSSProperties> = {
   logo: { fontWeight: 700, fontSize: 18, color: '#f1f5f9' },
   navLinks: { display: 'flex', alignItems: 'center', gap: 16 },
   navLink: { color: '#94a3b8', textDecoration: 'none', fontSize: 14 },
+  langSelect: { padding: '4px 8px', borderRadius: 6, border: '1px solid #475569', background: '#0f172a', color: '#94a3b8', fontSize: 13, cursor: 'pointer' },
   logoutBtn: { background: 'none', border: '1px solid #475569', color: '#94a3b8', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 13 },
   content: { maxWidth: 900, margin: '0 auto', padding: '40px 24px' },
   h1: { fontSize: 28, fontWeight: 700, color: '#f1f5f9', marginBottom: 32 },

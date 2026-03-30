@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { useTranslation } from '../../lib/useTranslation';
 
 interface SettingsForm {
   apiBaseUrl: string;
@@ -22,6 +23,7 @@ const defaultForm: SettingsForm = {
 
 export default function AdminSettings() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const [form, setForm] = useState<SettingsForm>(defaultForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,7 +40,7 @@ export default function AdminSettings() {
     fetch('/api/admin/settings')
       .then(r => { if (r.status === 401) { router.push('/admin/login'); } return r.json(); })
       .then(data => { if (data.settings) setForm(s => ({ ...s, ...data.settings, apiKey: data.settings.apiKey || '' })); })
-      .catch(() => setError('載入設定失敗'))
+      .catch(() => setError(t('settings.loadFailed')))
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -52,17 +54,17 @@ export default function AdminSettings() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || '儲存失敗'); return; }
-      setSuccess('設定已儲存');
-    } catch { setError('儲存失敗'); }
+      if (!res.ok) { setError(data.error || t('settings.saveFailed')); return; }
+      setSuccess(t('settings.saved'));
+    } catch { setError(t('settings.saveFailed')); }
     finally { setSaving(false); }
   };
 
   const handleChangePassword = async (e: FormEvent) => {
     e.preventDefault();
     setPwError(''); setPwSuccess('');
-    if (pwForm.newPassword !== pwForm.confirmPassword) { setPwError('新密碼與確認密碼不一致'); return; }
-    if (pwForm.newPassword.length < 8) { setPwError('新密碼至少 8 個字元'); return; }
+    if (pwForm.newPassword !== pwForm.confirmPassword) { setPwError(t('settings.passwordMismatch')); return; }
+    if (pwForm.newPassword.length < 8) { setPwError(t('settings.passwordTooShort')); return; }
     setPwSaving(true);
     try {
       const res = await fetch('/api/admin/auth', {
@@ -71,16 +73,15 @@ export default function AdminSettings() {
         body: JSON.stringify({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
       });
       const data = await res.json();
-      if (!res.ok) { setPwError(data.error || '修改失敗'); return; }
-      setPwSuccess('密碼已更新');
+      if (!res.ok) { setPwError(data.error || t('settings.changeFailed')); return; }
+      setPwSuccess(t('settings.passwordUpdated'));
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch { setPwError('修改失敗'); }
+    } catch { setPwError(t('settings.changeFailed')); }
     finally { setPwSaving(false); }
   };
 
-  const handleLogout = async () => {
-    await fetch('/api/admin/auth', { method: 'DELETE' });
-    router.push('/admin/login');
+  const handleChangeLanguage = (newLocale: string) => {
+    router.push(router.asPath, router.asPath, { locale: newLocale });
   };
 
   const set = (key: keyof SettingsForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,51 +92,55 @@ export default function AdminSettings() {
   return (
     <div style={s.bg}>
       <nav style={s.nav}>
-        <span style={s.logo}>⚙️ 後台管理</span>
+        <span style={s.logo}>⚙️ {t('admin.title')}</span>
         <div style={s.navLinks}>
-          <Link href="/admin" style={s.navLink}>儀表板</Link>
-          <Link href="/admin/models" style={s.navLink}>模型管理</Link>
-          <Link href="/admin/providers" style={s.navLink}>供應商</Link>
-          <Link href="/admin/settings" style={{...s.navLink, color: '#818cf8'}}>設定</Link>
-          <Link href="/" style={s.navLink}>前台</Link>
-          <button onClick={handleLogout} style={s.logoutBtn}>登出</button>
+          <Link href="/admin" style={s.navLink}>{t('common.dashboard')}</Link>
+          <Link href="/admin/models" style={s.navLink}>{t('common.models')}</Link>
+          <Link href="/admin/providers" style={s.navLink}>{t('common.providers')}</Link>
+          <Link href="/admin/settings" style={{...s.navLink, color: '#818cf8'}}>{t('common.settings')}</Link>
+          <Link href="/" style={s.navLink}>{t('common.dashboard')}</Link>
+          <select value={locale} onChange={e => handleChangeLanguage(e.target.value)} style={s.langSelect}>
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">English</option>
+          </select>
+          <button onClick={() => { fetch('/api/admin/auth', { method: 'DELETE' }); router.push('/admin/login'); }} style={s.logoutBtn}>{t('common.logout')}</button>
         </div>
       </nav>
       <div style={s.content}>
-        <h1 style={s.h1}>系統設定</h1>
-        {loading ? <p style={s.muted}>載入中...</p> : (
+        <h1 style={s.h1}>{t('settings.title')}</h1>
+        {loading ? <p style={s.muted}>{t('common.loading')}</p> : (
           <form onSubmit={handleSave}>
             <section style={s.section}>
-              <h2 style={s.h2}>API 設定</h2>
-              <label style={s.label}>API 基礎地址</label>
+              <h2 style={s.h2}>{t('settings.apiSettings')}</h2>
+              <label style={s.label}>{t('settings.apiUrl')}</label>
               <input value={form.apiBaseUrl} onChange={set('apiBaseUrl')} style={s.input} placeholder="https://api.example.com" />
-              <p style={s.hint}>API 代理的基礎 URL，實際請求會附加 /v1/images/generations</p>
+              <p style={s.hint}>{t('settings.apiUrlHint')}</p>
 
-              <label style={s.label}>伺服器端 API Key</label>
+              <label style={s.label}>{t('settings.serverKey')}</label>
               <input value={form.apiKey} onChange={set('apiKey')} style={s.input} placeholder="sk-... （留空保持不變）" type="password" />
-              <p style={s.hint}>若留空且帶有 **** 字樣，表示使用已儲存的 Key（不會清除）</p>
+              <p style={s.hint}>{t('settings.serverKeyHint')}</p>
 
               <div style={s.checkRow}>
                 <label style={s.checkLabel}>
                   <input type="checkbox" checked={form.enableEnvKey} onChange={set('enableEnvKey')} />
-                  {' '}允許前台使用伺服器端 API Key（使用者可選擇不輸入自己的 Key）
+                  {' '}{t('settings.enableServerKey')}
                 </label>
               </div>
             </section>
 
             <section style={s.section}>
-              <h2 style={s.h2}>速率限制</h2>
+              <h2 style={s.h2}>{t('settings.rateLimit')}</h2>
               <div style={s.row3}>
                 <div>
-                  <label style={s.label}>每分鐘上限（次）</label>
+                  <label style={s.label}>{t('settings.perMinute')}</label>
                   <input type="number" value={form.rateLimitPerMinute} onChange={set('rateLimitPerMinute')} style={s.input} min={1} />
                 </div>
                 <div>
-                  <label style={s.label}>突發限制（次）</label>
+                  <label style={s.label}>{t('settings.burstLimit')}</label>
                   <input type="number" value={form.rateLimitBurst} onChange={set('rateLimitBurst')} style={s.input} min={1} />
                 </div>
                 <div>
-                  <label style={s.label}>突發窗口（毫秒）</label>
+                  <label style={s.label}>{t('settings.burstWindow')}</label>
                   <input type="number" value={form.rateLimitBurstWindow} onChange={set('rateLimitBurstWindow')} style={s.input} min={1000} step={1000} />
                 </div>
               </div>
@@ -143,22 +148,22 @@ export default function AdminSettings() {
 
             {error && <p style={s.error}>{error}</p>}
             {success && <p style={s.success}>{success}</p>}
-            <button type="submit" disabled={saving} style={s.saveBtn}>{saving ? '儲存中...' : '儲存設定'}</button>
+            <button type="submit" disabled={saving} style={s.saveBtn}>{saving ? `${t('common.save')}中...` : t('common.save')}</button>
           </form>
         )}
 
         <section style={{...s.section, marginTop: 40}}>
-          <h2 style={s.h2}>修改管理員密碼</h2>
+          <h2 style={s.h2}>{t('settings.changePassword')}</h2>
           <form onSubmit={handleChangePassword}>
-            <label style={s.label}>目前密碼</label>
+            <label style={s.label}>{t('settings.currentPassword')}</label>
             <input type="password" value={pwForm.currentPassword} onChange={e => setPwForm(f => ({...f, currentPassword: e.target.value}))} style={s.input} />
-            <label style={s.label}>新密碼（至少 8 字元）</label>
+            <label style={s.label}>{t('settings.newPassword')}</label>
             <input type="password" value={pwForm.newPassword} onChange={e => setPwForm(f => ({...f, newPassword: e.target.value}))} style={s.input} />
-            <label style={s.label}>確認新密碼</label>
+            <label style={s.label}>{t('settings.confirmPassword')}</label>
             <input type="password" value={pwForm.confirmPassword} onChange={e => setPwForm(f => ({...f, confirmPassword: e.target.value}))} style={s.input} />
             {pwError && <p style={s.error}>{pwError}</p>}
             {pwSuccess && <p style={s.success}>{pwSuccess}</p>}
-            <button type="submit" disabled={pwSaving} style={{...s.saveBtn, marginTop: 12}}>{pwSaving ? '更新中...' : '更新密碼'}</button>
+            <button type="submit" disabled={pwSaving} style={{...s.saveBtn, marginTop: 12}}>{pwSaving ? `${t('common.save')}中...` : t('settings.updatePassword')}</button>
           </form>
         </section>
       </div>
@@ -172,6 +177,7 @@ const s: Record<string, React.CSSProperties> = {
   logo: { fontWeight: 700, fontSize: 18, color: '#f1f5f9' },
   navLinks: { display: 'flex', alignItems: 'center', gap: 16 },
   navLink: { color: '#94a3b8', textDecoration: 'none', fontSize: 14 },
+  langSelect: { padding: '4px 8px', borderRadius: 6, border: '1px solid #475569', background: '#0f172a', color: '#94a3b8', fontSize: 13, cursor: 'pointer' },
   logoutBtn: { background: 'none', border: '1px solid #475569', color: '#94a3b8', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 13 },
   content: { maxWidth: 720, margin: '0 auto', padding: '40px 24px' },
   h1: { fontSize: 28, fontWeight: 700, color: '#f1f5f9', marginBottom: 32 },

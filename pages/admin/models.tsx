@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { ModelConfig, Provider } from '../../lib/types';
+import { useTranslation } from '../../lib/useTranslation';
 
 const emptyForm = { value: '', label: '', isGrok: false, enabled: true, providerId: '' };
 
 export default function AdminModels() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ export default function AdminModels() {
       const providersData = await providersRes.json();
       setModels(modelsData.models || []);
       setProviders(providersData.providers || []);
-    } catch { setError('載入失敗'); }
+    } catch { setError(t('models.loadFailed')); }
     finally { setLoading(false); }
   };
 
@@ -40,7 +42,7 @@ export default function AdminModels() {
   const closeForm = () => { setShowForm(false); setEditId(null); };
 
   const handleSave = async () => {
-    if (!form.value.trim() || !form.label.trim()) { setError('請填寫 API Value 與顯示名稱'); return; }
+    if (!form.value.trim() || !form.label.trim()) { setError(t('models.fillRequired')); return; }
     setSaving(true); setError(''); setSuccess('');
     try {
       if (editId) {
@@ -48,17 +50,17 @@ export default function AdminModels() {
         const updated = models.map(m => m.id === editId ? { ...m, ...form } : m);
         const res = await fetch('/api/admin/models', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ models: updated }) });
         const data = await res.json();
-        if (!res.ok) { setError(data.error || '儲存失敗'); return; }
+        if (!res.ok) { setError(data.error || t('models.saveFailed')); return; }
         setModels(data.models);
       } else {
         const res = await fetch('/api/admin/models', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
         const data = await res.json();
-        if (!res.ok) { setError(data.error || '新增失敗'); return; }
+        if (!res.ok) { setError(data.error || t('models.addFailed')); return; }
         setModels(prev => [...prev, data.model]);
       }
-      setSuccess(editId ? '已更新' : '已新增');
+      setSuccess(editId ? t('models.updated') : t('models.added'));
       closeForm();
-    } catch { setError('操作失敗'); }
+    } catch { setError(t('models.saveFailed')); }
     finally { setSaving(false); }
   };
 
@@ -70,7 +72,7 @@ export default function AdminModels() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('確定刪除此模型？')) return;
+    if (!confirm(t('models.confirmDelete'))) return;
     const res = await fetch(`/api/admin/models?id=${id}`, { method: 'DELETE' });
     if (res.ok) setModels(prev => prev.filter(m => m.id !== id));
   };
@@ -93,37 +95,46 @@ export default function AdminModels() {
     if (res.ok) setModels(data.models);
   };
 
+  const handleChangeLanguage = (newLocale: string) => {
+    router.push(router.asPath, router.asPath, { locale: newLocale });
+  };
+
   return (
     <div style={s.bg}>
       <nav style={s.nav}>
-        <span style={s.logo}>⚙️ 後台管理</span>
+        <span style={s.logo}>⚙️ {t('admin.title')}</span>
         <div style={s.navLinks}>
-          <Link href="/admin" style={s.navLink}>儀表板</Link>
-          <Link href="/admin/models" style={{...s.navLink, color: '#818cf8'}}>模型管理</Link>
-          <Link href="/admin/providers" style={s.navLink}>供應商</Link>
-          <Link href="/admin/settings" style={s.navLink}>設定</Link>
-          <Link href="/" style={s.navLink}>前台</Link>
+          <Link href="/admin" style={s.navLink}>{t('common.dashboard')}</Link>
+          <Link href="/admin/models" style={{...s.navLink, color: '#818cf8'}}>{t('common.models')}</Link>
+          <Link href="/admin/providers" style={s.navLink}>{t('common.providers')}</Link>
+          <Link href="/admin/settings" style={s.navLink}>{t('common.settings')}</Link>
+          <Link href="/" style={s.navLink}>{t('common.dashboard')}</Link>
+          <select value={locale} onChange={e => handleChangeLanguage(e.target.value)} style={s.langSelect}>
+            <option value="zh-TW">繁體中文</option>
+            <option value="en">English</option>
+          </select>
+          <button onClick={() => { fetch('/api/admin/auth', { method: 'DELETE' }); router.push('/admin/login'); }} style={s.logoutBtn}>{t('common.logout')}</button>
         </div>
       </nav>
       <div style={s.content}>
         <div style={s.header}>
-          <h1 style={s.h1}>模型管理</h1>
-          <button onClick={openAdd} style={s.addBtn}>+ 新增模型</button>
+          <h1 style={s.h1}>{t('models.title')}</h1>
+          <button onClick={openAdd} style={s.addBtn}>{t('models.addModel')}</button>
         </div>
         {error && <p style={s.error}>{error}</p>}
         {success && <p style={s.success}>{success}</p>}
-        {loading ? <p style={s.muted}>載入中...</p> : (
+        {loading ? <p style={s.muted}>{t('common.loading')}</p> : (
           <div style={s.tableWrap}>
             <table style={s.table}>
               <thead>
                 <tr>
-                  <th style={s.th}>排序</th>
-                  <th style={s.th}>顯示名稱</th>
-                  <th style={s.th}>API Value</th>
-                  <th style={s.th}>供應商</th>
+                  <th style={s.th}>{t('models.sort')}</th>
+                  <th style={s.th}>{t('models.displayName')}</th>
+                  <th style={s.th}>{t('models.apiValue')}</th>
+                  <th style={s.th}>{t('models.provider')}</th>
                   <th style={s.th}>Grok</th>
-                  <th style={s.th}>狀態</th>
-                  <th style={s.th}>操作</th>
+                  <th style={s.th}>{t('models.status')}</th>
+                  <th style={s.th}>{t('models.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -137,16 +148,16 @@ export default function AdminModels() {
                     </td>
                     <td style={s.td}>{m.label}</td>
                     <td style={{...s.td, fontFamily: 'monospace', fontSize: 12, color: '#94a3b8'}}>{m.value}</td>
-                    <td style={{...s.td, fontSize: 12, color: '#94a3b8'}}>{providerName || '全域'}</td>
+                    <td style={{...s.td, fontSize: 12, color: '#94a3b8'}}>{providerName || t('models.globalSettings')}</td>
                     <td style={s.td}>{m.isGrok ? '✅' : '—'}</td>
                     <td style={s.td}>
                       <button onClick={() => handleToggle(m)} style={m.enabled ? s.enabledBadge : s.disabledBadge}>
-                        {m.enabled ? '已啟用' : '已停用'}
+                        {m.enabled ? t('providers.enabled') : t('providers.disabled')}
                       </button>
                     </td>
                     <td style={s.td}>
-                      <button onClick={() => openEdit(m)} style={s.editBtn}>編輯</button>
-                      <button onClick={() => handleDelete(m.id)} style={s.deleteBtn}>刪除</button>
+                      <button onClick={() => openEdit(m)} style={s.editBtn}>{t('common.edit')}</button>
+                      <button onClick={() => handleDelete(m.id)} style={s.deleteBtn}>{t('common.delete')}</button>
                     </td>
                   </tr>
                   );
@@ -160,14 +171,14 @@ export default function AdminModels() {
       {showForm && (
         <div style={s.overlay}>
           <div style={s.modal}>
-            <h2 style={s.modalTitle}>{editId ? '編輯模型' : '新增模型'}</h2>
-            <label style={s.label}>顯示名稱</label>
+            <h2 style={s.modalTitle}>{editId ? t('models.editModel') : t('models.newModel')}</h2>
+            <label style={s.label}>{t('models.displayName')}</label>
             <input value={form.label} onChange={e => setForm(f => ({...f, label: e.target.value}))} style={s.input} placeholder="例如：GPT Image 1" />
-            <label style={s.label}>API Value（model 欄位傳入值）</label>
+            <label style={s.label}>{t('models.apiValue')}</label>
             <input value={form.value} onChange={e => setForm(f => ({...f, value: e.target.value}))} style={s.input} placeholder="例如：gpt-image-1" disabled={!!editId} />
-            <label style={s.label}>API 供應商</label>
+            <label style={s.label}>{t('models.provider')}</label>
             <select value={form.providerId} onChange={e => setForm(f => ({...f, providerId: e.target.value}))} style={s.select}>
-              <option value="">（使用全域設定）</option>
+              <option value="">{t('models.globalSettings')}</option>
               {providers.map(p => (
                 <option key={p.id} value={p.id}>{p.name} — {p.baseUrl}</option>
               ))}
@@ -175,19 +186,19 @@ export default function AdminModels() {
             <div style={s.checkRow}>
               <label style={s.checkLabel}>
                 <input type="checkbox" checked={form.isGrok} onChange={e => setForm(f => ({...f, isGrok: e.target.checked}))} />
-                {' '}Grok 類型（使用 grok-imagine-image + aspect_ratio）
+                {' '}{t('models.grokDesc')}
               </label>
             </div>
             <div style={s.checkRow}>
               <label style={s.checkLabel}>
                 <input type="checkbox" checked={form.enabled} onChange={e => setForm(f => ({...f, enabled: e.target.checked}))} />
-                {' '}啟用（顯示於前台）
+                {' '}{t('models.enabledDesc')}
               </label>
             </div>
             {error && <p style={s.error}>{error}</p>}
             <div style={s.modalBtns}>
-              <button onClick={closeForm} style={s.cancelBtn}>取消</button>
-              <button onClick={handleSave} disabled={saving} style={s.saveBtn}>{saving ? '儲存中...' : '儲存'}</button>
+              <button onClick={closeForm} style={s.cancelBtn}>{t('common.cancel')}</button>
+              <button onClick={handleSave} disabled={saving} style={s.saveBtn}>{saving ? `${t('common.save')}中...` : t('common.save')}</button>
             </div>
           </div>
         </div>
@@ -202,6 +213,8 @@ const s: Record<string, React.CSSProperties> = {
   logo: { fontWeight: 700, fontSize: 18, color: '#f1f5f9' },
   navLinks: { display: 'flex', alignItems: 'center', gap: 16 },
   navLink: { color: '#94a3b8', textDecoration: 'none', fontSize: 14 },
+  langSelect: { padding: '4px 8px', borderRadius: 6, border: '1px solid #475569', background: '#0f172a', color: '#94a3b8', fontSize: 13, cursor: 'pointer' },
+  logoutBtn: { background: 'none', border: '1px solid #475569', color: '#94a3b8', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 13 },
   content: { maxWidth: 960, margin: '0 auto', padding: '40px 24px' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
   h1: { fontSize: 28, fontWeight: 700, color: '#f1f5f9', margin: 0 },
