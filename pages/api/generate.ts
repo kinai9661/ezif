@@ -216,6 +216,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (aspectRatio) body.aspect_ratio = aspectRatio;
   } else {
     const provider = modelConfig?.providerId ? providers.find(p => p.id === modelConfig.providerId) : null;
+    const modelName = typeof model === 'string' ? model.toLowerCase() : '';
     
     if (size) {
       const sizeParams = convertSizeToProvider(size, provider?.sizeFormat);
@@ -224,9 +225,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (aspectRatio) body.aspect_ratio = aspectRatio;
     if (n) body.n = Number(n);
     
-    if (provider?.name?.toLowerCase().includes('supabase')) {
+    if (provider?.name?.toLowerCase().includes('supabase') || modelName.includes('nano banana')) {
       body.response_format = 'url';
       if (req.body.resolution) body.resolution = req.body.resolution;
+      if (aspectRatio) body.aspect_ratio = aspectRatio;
     }
   }
 
