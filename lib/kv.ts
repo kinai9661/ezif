@@ -3,20 +3,28 @@ import { ModelConfig, AppSettings, DEFAULT_MODELS, DEFAULT_SETTINGS } from './ty
 
 export async function getModels(): Promise<ModelConfig[]> {
   try {
-    const models = await kv.get<ModelConfig[]>('models');
-    if (models && models.length > 0) return models.sort((a, b) => a.order - b.order);
+    const raw = await kv.get<unknown>('models');
+    if (raw) {
+      const models: ModelConfig[] = typeof raw === 'string' ? JSON.parse(raw) : raw as ModelConfig[];
+      if (Array.isArray(models) && models.length > 0) {
+        return models.sort((a, b) => a.order - b.order);
+      }
+    }
   } catch {}
   return DEFAULT_MODELS;
 }
 
 export async function setModels(models: ModelConfig[]): Promise<void> {
-  await kv.set('models', models);
+  await kv.set('models', JSON.stringify(models));
 }
 
 export async function getSettings(): Promise<AppSettings> {
   try {
-    const settings = await kv.get<AppSettings>('settings');
-    if (settings) return settings;
+    const raw = await kv.get<unknown>('settings');
+    if (raw) {
+      const settings: AppSettings = typeof raw === 'string' ? JSON.parse(raw) : raw as AppSettings;
+      if (settings && settings.apiBaseUrl) return settings;
+    }
   } catch {}
   return {
     ...DEFAULT_SETTINGS,
@@ -26,7 +34,7 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function setSettings(settings: AppSettings): Promise<void> {
-  await kv.set('settings', settings);
+  await kv.set('settings', JSON.stringify(settings));
 }
 
 export async function getAdminPasswordHash(): Promise<string | null> {
