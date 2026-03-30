@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'POST') {
-    const { value, label, enabled = true, isGrok = false } = req.body || {};
+    const { value, label, enabled = true, isGrok = false, providerId = '' } = req.body || {};
     if (!value || !label) return res.status(400).json({ error: '請輸入模型 value 與顯示名稱' });
 
     try {
@@ -37,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         enabled,
         isGrok,
         order: models.length,
+        providerId: providerId || undefined,
       };
       await setModels([...models, newModel]);
       return res.status(201).json({ model: newModel });

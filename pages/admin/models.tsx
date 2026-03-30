@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { ModelConfig } from '../../lib/types';
+import { ModelConfig, Provider } from '../../lib/types';
 
-const emptyForm = { value: '', label: '', isGrok: false, enabled: true };
+const emptyForm = { value: '', label: '', isGrok: false, enabled: true, providerId: '' };
 
 export default function AdminModels() {
   const router = useRouter();
   const [models, setModels] = useState<ModelConfig[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -19,10 +20,15 @@ export default function AdminModels() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/models');
-      if (res.status === 401) { router.push('/admin/login'); return; }
-      const data = await res.json();
-      setModels(data.models || []);
+      const [modelsRes, providersRes] = await Promise.all([
+        fetch('/api/admin/models'),
+        fetch('/api/admin/providers'),
+      ]);
+      if (modelsRes.status === 401 || providersRes.status === 401) { router.push('/admin/login'); return; }
+      const modelsData = await modelsRes.json();
+      const providersData = await providersRes.json();
+      setModels(modelsData.models || []);
+      setProviders(providersData.providers || []);
     } catch { setError('載入失敗'); }
     finally { setLoading(false); }
   };
@@ -30,7 +36,7 @@ export default function AdminModels() {
   useEffect(() => { load(); }, []);
 
   const openAdd = () => { setForm(emptyForm); setEditId(null); setShowForm(true); setError(''); setSuccess(''); };
-  const openEdit = (m: ModelConfig) => { setForm({ value: m.value, label: m.label, isGrok: m.isGrok, enabled: m.enabled }); setEditId(m.id); setShowForm(true); setError(''); setSuccess(''); };
+  const openEdit = (m: ModelConfig) => { setForm({ value: m.value, label: m.label, isGrok: m.isGrok, enabled: m.enabled, providerId: m.providerId || '' }); setEditId(m.id); setShowForm(true); setError(''); setSuccess(''); };
   const closeForm = () => { setShowForm(false); setEditId(null); };
 
   const handleSave = async () => {
@@ -114,13 +120,16 @@ export default function AdminModels() {
                   <th style={s.th}>排序</th>
                   <th style={s.th}>顯示名稱</th>
                   <th style={s.th}>API Value</th>
+                  <th style={s.th}>供應商</th>
                   <th style={s.th}>Grok</th>
                   <th style={s.th}>狀態</th>
                   <th style={s.th}>操作</th>
                 </tr>
               </thead>
               <tbody>
-                {models.map((m, idx) => (
+                {models.map((m, idx) => {
+                  const providerName = m.providerId ? providers.find(p => p.id === m.providerId)?.name : null;
+                  return (
                   <tr key={m.id} style={s.tr}>
                     <td style={s.td}>
                       <button onClick={() => handleMoveUp(idx)} disabled={idx === 0} style={s.sortBtn}>▲</button>
@@ -128,6 +137,7 @@ export default function AdminModels() {
                     </td>
                     <td style={s.td}>{m.label}</td>
                     <td style={{...s.td, fontFamily: 'monospace', fontSize: 12, color: '#94a3b8'}}>{m.value}</td>
+                    <td style={{...s.td, fontSize: 12, color: '#94a3b8'}}>{providerName || '全域'}</td>
                     <td style={s.td}>{m.isGrok ? '✅' : '—'}</td>
                     <td style={s.td}>
                       <button onClick={() => handleToggle(m)} style={m.enabled ? s.enabledBadge : s.disabledBadge}>
@@ -139,7 +149,8 @@ export default function AdminModels() {
                       <button onClick={() => handleDelete(m.id)} style={s.deleteBtn}>刪除</button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -154,6 +165,13 @@ export default function AdminModels() {
             <input value={form.label} onChange={e => setForm(f => ({...f, label: e.target.value}))} style={s.input} placeholder="例如：GPT Image 1" />
             <label style={s.label}>API Value（model 欄位傳入值）</label>
             <input value={form.value} onChange={e => setForm(f => ({...f, value: e.target.value}))} style={s.input} placeholder="例如：gpt-image-1" disabled={!!editId} />
+            <label style={s.label}>API 供應商</label>
+            <select value={form.providerId} onChange={e => setForm(f => ({...f, providerId: e.target.value}))} style={s.select}>
+              <option value="">（使用全域設定）</option>
+              {providers.map(p => (
+                <option key={p.id} value={p.id}>{p.name} — {p.baseUrl}</option>
+              ))}
+            </select>
             <div style={s.checkRow}>
               <label style={s.checkLabel}>
                 <input type="checkbox" checked={form.isGrok} onChange={e => setForm(f => ({...f, isGrok: e.target.checked}))} />
@@ -206,6 +224,7 @@ const s: Record<string, React.CSSProperties> = {
   modalTitle: { color: '#f1f5f9', fontSize: 20, fontWeight: 700, marginBottom: 20 },
   label: { display: 'block', color: '#94a3b8', fontSize: 13, marginBottom: 4, marginTop: 12 },
   input: { width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid #334155', background: '#0f172a', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' },
+  select: { width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid #334155', background: '#0f172a', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' },
   checkRow: { marginTop: 12 },
   checkLabel: { color: '#94a3b8', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 },
   modalBtns: { display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 },
