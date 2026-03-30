@@ -10,6 +10,10 @@ interface SettingsForm {
   rateLimitBurst: number;
   rateLimitBurstWindow: number;
   enableEnvKey: boolean;
+  theme: 'dark' | 'light';
+  logo: string;
+  primaryColor: string;
+  secondaryColor: string;
 }
 
 const defaultForm: SettingsForm = {
@@ -19,6 +23,10 @@ const defaultForm: SettingsForm = {
   rateLimitBurst: 5,
   rateLimitBurstWindow: 10000,
   enableEnvKey: true,
+  theme: 'light',
+  logo: '',
+  primaryColor: '#007bff',
+  secondaryColor: '#6c757d',
 };
 
 export default function AdminSettings() {
@@ -84,8 +92,8 @@ export default function AdminSettings() {
     router.push(router.asPath, router.asPath, { locale: newLocale });
   };
 
-  const set = (key: keyof SettingsForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'number' ? Number(e.target.value) : e.target.value;
+  const set = (key: keyof SettingsForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const val = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.type === 'number' ? Number(e.target.value) : e.target.value;
     setForm(f => ({ ...f, [key]: val }));
   };
 
@@ -142,6 +150,36 @@ export default function AdminSettings() {
                 <div>
                   <label style={s.label}>{t('settings.burstWindow')}</label>
                   <input type="number" value={form.rateLimitBurstWindow} onChange={set('rateLimitBurstWindow')} style={s.input} min={1000} step={1000} />
+                </div>
+              </div>
+            </section>
+
+            <section style={s.section}>
+              <h2 style={s.h2}>{t('settings.appearance')}</h2>
+              <label style={s.label}>{t('settings.theme')}</label>
+              <select value={form.theme} onChange={set('theme' as keyof SettingsForm)} style={s.input}>
+                <option value="light">{t('settings.themeLight')}</option>
+                <option value="dark">{t('settings.themeDark')}</option>
+              </select>
+
+              <label style={s.label}>{t('settings.logo')}</label>
+              <input value={form.logo} onChange={set('logo' as keyof SettingsForm)} style={s.input} placeholder="https://example.com/logo.png" />
+              <p style={s.hint}>{t('settings.logoHint')}</p>
+
+              <div style={s.row3}>
+                <div>
+                  <label style={s.label}>{t('settings.primaryColor')}</label>
+                  <div style={{display: 'flex', gap: 8}}>
+                    <input type="color" value={form.primaryColor} onChange={set('primaryColor' as keyof SettingsForm)} style={{...s.input, width: 60, padding: 4}} />
+                    <input value={form.primaryColor} onChange={set('primaryColor' as keyof SettingsForm)} style={s.input} placeholder="#007bff" />
+                  </div>
+                </div>
+                <div>
+                  <label style={s.label}>{t('settings.secondaryColor')}</label>
+                  <div style={{display: 'flex', gap: 8}}>
+                    <input type="color" value={form.secondaryColor} onChange={set('secondaryColor' as keyof SettingsForm)} style={{...s.input, width: 60, padding: 4}} />
+                    <input value={form.secondaryColor} onChange={set('secondaryColor' as keyof SettingsForm)} style={s.input} placeholder="#6c757d" />
+                  </div>
                 </div>
               </div>
             </section>

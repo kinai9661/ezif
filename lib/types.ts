@@ -24,6 +24,10 @@ export interface AppSettings {
   rateLimitBurst: number;
   rateLimitBurstWindow: number;
   enableEnvKey: boolean;
+  theme: 'dark' | 'light';
+  logo: string;
+  primaryColor: string;
+  secondaryColor: string;
 }
 
 export const DEFAULT_PROVIDERS: Provider[] = [];
@@ -42,4 +46,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   rateLimitBurst: 5,
   rateLimitBurstWindow: 10000,
   enableEnvKey: true,
+  theme: 'light',
+  logo: '',
+  primaryColor: '#007bff',
+  secondaryColor: '#6c757d',
 };

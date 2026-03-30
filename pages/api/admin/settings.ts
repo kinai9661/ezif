@@ -36,6 +36,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         rateLimitBurst: Number(body.rateLimitBurst) || current.rateLimitBurst,
         rateLimitBurstWindow: Number(body.rateLimitBurstWindow) || current.rateLimitBurstWindow,
         enableEnvKey: typeof body.enableEnvKey === 'boolean' ? body.enableEnvKey : current.enableEnvKey,
+        theme: typeof body.theme === 'string' && (body.theme === 'dark' || body.theme === 'light') ? body.theme : current.theme,
+        logo: typeof body.logo === 'string' ? body.logo.trim() : current.logo,
+        primaryColor: typeof body.primaryColor === 'string' ? body.primaryColor.trim() : current.primaryColor,
+        secondaryColor: typeof body.secondaryColor === 'string' ? body.secondaryColor.trim() : current.secondaryColor,
       };
 
       if (!updated.apiBaseUrl) return res.status(400).json({ error: 'API 地址不能為空' });
