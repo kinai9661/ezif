@@ -1,18 +1,19 @@
-import { useState, FormEvent } from 'react';
+import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
+import { signIn } from 'next-auth/react';
 import { useTranslation } from '../../lib/useTranslation';
 
 export default function AdminLogin() {
   const router = useRouter();
   const { t, locale } = useTranslation();
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handlePasswordSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
     try {
       const res = await fetch('/api/admin/auth', {
         method: 'POST',
@@ -20,9 +21,11 @@ export default function AdminLogin() {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || t('login.loginFailed')); return; }
-      const redirect = (router.query.redirect as string) || '/admin';
-      router.push(redirect);
+      if (!res.ok) {
+        setError(data.error || t('login.loginFailed'));
+        return;
+      }
+      router.push('/admin');
     } catch {
       setError(t('login.loginFailed'));
     } finally {
@@ -30,58 +33,81 @@ export default function AdminLogin() {
     }
   };
 
-  const handleChangeLanguage = (newLocale: string) => {
-    router.push(router.asPath, router.asPath, { locale: newLocale });
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const result = await signIn('google', { redirect: false });
+      if (result?.ok) {
+        router.push('/admin');
+      } else {
+        setError(result?.error || t('login.loginFailed'));
+      }
+    } catch {
+      setError(t('login.loginFailed'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={styles.bg}>
-      <div style={styles.card}>
-        <div style={styles.langSwitcher}>
-          <button
-            onClick={() => handleChangeLanguage('zh-TW')}
-            style={{...styles.langBtn, opacity: locale === 'zh-TW' ? 1 : 0.5}}
-          >
-            繁體中文
+    <div style={s.bg}>
+      <div style={s.container}>
+        <div style={s.card}>
+          <h1 style={s.title}>{t('admin.title')}</h1>
+          <p style={s.subtitle}>{t('login.title')}</p>
+
+          {error && <p style={s.error}>{error}</p>}
+
+          {/* Google 登入 */}
+          <button onClick={handleGoogleSignIn} disabled={loading} style={s.googleBtn}>
+            <span style={s.googleIcon}>🔐</span>
+            {loading ? t('common.loading') : 'Sign in with Google'}
           </button>
-          <button
-            onClick={() => handleChangeLanguage('en')}
-            style={{...styles.langBtn, opacity: locale === 'en' ? 1 : 0.5}}
-          >
-            English
-          </button>
+
+          <div style={s.divider}>
+            <span style={s.dividerText}>or</span>
+          </div>
+
+          {/* 密碼登入 */}
+          <form onSubmit={handlePasswordSubmit}>
+            <label style={s.label}>{t('login.password')}</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={s.input}
+              placeholder={t('login.password')}
+              disabled={loading}
+            />
+            <button type="submit" disabled={loading} style={s.submitBtn}>
+              {loading ? t('common.loading') : t('login.login')}
+            </button>
+          </form>
+
+          <p style={s.hint}>
+            {locale === 'en' 
+              ? 'Use your admin password or Google account to login'
+              : '使用管理員密碼或 Google 帳號登入'}
+          </p>
         </div>
-        <h1 style={styles.title}>🔐 {t('admin.title')}</h1>
-        <p style={styles.sub}>{t('login.title')}</p>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder={t('login.password')}
-            style={styles.input}
-            autoFocus
-          />
-          {error && <p style={styles.error}>{error}</p>}
-          <button type="submit" disabled={loading || !password} style={styles.btn}>
-            {loading ? `${t('login.login')}中...` : t('login.login')}
-          </button>
-        </form>
-        <a href="/" style={styles.back}>← {t('common.dashboard')}</a>
       </div>
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  bg: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a' },
-  card: { background: '#1e293b', borderRadius: 12, padding: '40px 48px', width: '100%', maxWidth: 360, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' },
-  langSwitcher: { display: 'flex', gap: 8, marginBottom: 24, justifyContent: 'center' },
-  langBtn: { padding: '6px 12px', borderRadius: 6, border: '1px solid #475569', background: 'transparent', color: '#94a3b8', fontSize: 12, cursor: 'pointer', transition: 'all 0.2s' },
-  title: { color: '#f1f5f9', fontSize: 24, fontWeight: 700, marginBottom: 8, textAlign: 'center' },
-  sub: { color: '#94a3b8', fontSize: 14, textAlign: 'center', marginBottom: 24 },
-  input: { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#f1f5f9', fontSize: 15, outline: 'none', boxSizing: 'border-box', marginBottom: 8 },
-  error: { color: '#f87171', fontSize: 13, marginBottom: 8 },
-  btn: { width: '100%', padding: '11px 0', borderRadius: 8, border: 'none', background: '#6366f1', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 4 },
-  back: { display: 'block', textAlign: 'center', marginTop: 20, color: '#64748b', fontSize: 13, textDecoration: 'none' },
+const s: Record<string, React.CSSProperties> = {
+  bg: { minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' },
+  container: { width: '100%', maxWidth: 400, padding: '20px' },
+  card: { background: '#fff', borderRadius: 12, padding: 40, boxShadow: '0 10px 40px rgba(0,0,0,0.2)' },
+  title: { fontSize: 28, fontWeight: 700, color: '#1f2937', margin: '0 0 8px 0', textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', margin: '0 0 24px 0' },
+  error: { color: '#dc2626', fontSize: 13, marginBottom: 16, padding: '10px 12px', background: '#fee2e2', borderRadius: 6, textAlign: 'center' },
+  googleBtn: { width: '100%', padding: '12px 16px', background: '#fff', border: '1px solid #d1d5db', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, transition: 'all 0.2s' },
+  googleIcon: { fontSize: 18 },
+  divider: { display: 'flex', alignItems: 'center', margin: '20px 0', gap: 12 },
+  dividerText: { color: '#9ca3af', fontSize: 13, fontWeight: 600 },
+  label: { display: 'block', color: '#374151', fontSize: 13, fontWeight: 600, marginBottom: 8 },
+  input: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 14, marginBottom: 16, boxSizing: 'border-box' },
+  submitBtn: { width: '100%', padding: '12px 16px', background: '#667eea', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 },
+  hint: { fontSize: 12, color: '#9ca3af', textAlign: 'center', marginTop: 16, margin: 0 },
 };
