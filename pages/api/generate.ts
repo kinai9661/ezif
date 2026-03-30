@@ -78,11 +78,11 @@ function checkRateLimit(clientId: string): { allowed: boolean; retryAfter?: numb
 // 清理過期記錄的函數（每 5 分鐘執行一次）
 function cleanupExpiredRecords() {
   const now = Date.now();
-  for (const [clientId, record] of requestStore.entries()) {
+  requestStore.forEach((record, clientId) => {
     if (now > record.minuteReset + 300000) { // 5 分鐘後清理
       requestStore.delete(clientId);
     }
-  }
+  });
 }
 
 // 定期清理
