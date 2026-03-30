@@ -91,6 +91,19 @@ function cleanupExpiredRecords() {
   });
 }
 
+function normalizeApiResponse(data: any) {
+  if (data.data && Array.isArray(data.data)) {
+    return data;
+  }
+  if (data.url && typeof data.url === 'string') {
+    return { data: [{ url: data.url }] };
+  }
+  if (typeof data === 'string') {
+    return { data: [{ url: data }] };
+  }
+  return data;
+}
+
 if (typeof setInterval !== 'undefined') {
   setInterval(cleanupExpiredRecords, 300000);
 }
@@ -196,7 +209,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.setHeader('X-RateLimit-Remaining', Math.max(0, settings.rateLimitPerMinute - record.minuteCount).toString());
     }
 
-    return res.status(200).json(data);
+    return res.status(200).json(normalizeApiResponse(data));
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return res.status(500).json({ error: message });
