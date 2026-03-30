@@ -1,12 +1,13 @@
 import { ModelConfig, AppSettings, DEFAULT_MODELS, DEFAULT_SETTINGS } from './types';
 
-// Direct Upstash Redis REST API client (bypasses @vercel/kv path parsing issues)
+// Direct Upstash Redis REST API client
 async function kvGet(key: string): Promise<unknown> {
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) throw new Error('Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN');
 
   const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
+    method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`KV GET failed: ${res.status} ${res.statusText}`);
@@ -19,13 +20,11 @@ async function kvSet(key: string, value: string): Promise<void> {
   const token = process.env.KV_REST_API_TOKEN;
   if (!url || !token) throw new Error('Missing required environment variables KV_REST_API_URL and KV_REST_API_TOKEN');
 
-  const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
+  // Upstash REST API: POST /set/{key}/{value}
+  // Value must be URL-encoded when passed in the path
+  const res = await fetch(`${url}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify([value]),
+    headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
     const text = await res.text();
