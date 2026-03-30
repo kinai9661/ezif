@@ -126,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const isGrok = typeof model === 'string' && model.startsWith('grok-');
 
-  const body: Record = {
+  const body: Record<string, unknown> = {
     model: isGrok ? 'grok-imagine-image' : (model || 'gpt-image-1'),
     prompt,
     response_format: 'b64_json',
