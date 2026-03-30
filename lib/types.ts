@@ -1,3 +1,10 @@
+export interface SizeOption {
+  label: string;
+  value: string;
+  width?: number;
+  height?: number;
+}
+
 export interface Provider {
   id: string;
   name: string;
@@ -5,6 +12,8 @@ export interface Provider {
   apiKey: string;
   enabled: boolean;
   order: number;
+  supportedSizes?: SizeOption[];
+  sizeFormat?: 'size' | 'aspect_ratio' | 'resolution' | 'custom';
 }
 
 export interface ModelConfig {

@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { Provider } from '../../lib/types';
+import { Provider, SizeOption } from '../../lib/types';
 import { useTranslation } from '../../lib/useTranslation';
 
 export default function AdminProviders() {
@@ -13,18 +13,18 @@ export default function AdminProviders() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', baseUrl: '', apiKey: '', enabled: true });
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [form, setForm] = useState({ name: '', baseUrl: '', apiKey: '', enabled: true, sizeFormat: 'size' as const, supportedSizes: [] as SizeOption[] });
 
   const TEMPLATES = {
-    supabase: { name: 'Supabase', baseUrl: 'https://gjosebfngzowbcrwzxnw.supabase.co/functions/v1', apiKey: '' },
-    openai: { name: 'OpenAI', baseUrl: 'https://api.openai.com', apiKey: '' },
-    custom: { name: '', baseUrl: '', apiKey: '' },
+    supabase: { name: 'Supabase', baseUrl: 'https://gjosebfngzowbcrwzxnw.supabase.co/functions/v1', apiKey: '', sizeFormat: 'aspect_ratio' as const, supportedSizes: [{ label: '1:1', value: '1:1' }, { label: '16:9', value: '16:9' }, { label: '9:16', value: '9:16' }] },
+    openai: { name: 'OpenAI', baseUrl: 'https://api.openai.com', apiKey: '', sizeFormat: 'size' as const, supportedSizes: [{ label: '256x256', value: '256x256' }, { label: '512x512', value: '512x512' }, { label: '1024x1024', value: '1024x1024' }] },
+    custom: { name: '', baseUrl: '', apiKey: '', sizeFormat: 'size' as const, supportedSizes: [] },
   };
 
   const applyTemplate = (templateKey: string) => {
     const template = TEMPLATES[templateKey as keyof typeof TEMPLATES];
-    setForm({ ...template, enabled: true });
+    setForm({ ...template, enabled: true } as any);
     setSelectedTemplate(templateKey);
   };
 
@@ -50,7 +50,7 @@ export default function AdminProviders() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || t('providers.addFailed')); return; }
       setProviders(p => [...p, data.provider]);
-      setForm({ name: '', baseUrl: '', apiKey: '', enabled: true });
+      setForm({ name: '', baseUrl: '', apiKey: '', enabled: true, sizeFormat: 'size', supportedSizes: [] });
       setShowForm(false);
       setSuccess(t('providers.added'));
     } catch { setError(t('providers.addFailed')); }
@@ -155,6 +155,13 @@ export default function AdminProviders() {
                   style={s.input}
                   placeholder="sk-..."
                 />
+                <label style={s.label}>尺寸格式</label>
+                <select value={form.sizeFormat} onChange={e => setForm(f => ({...f, sizeFormat: e.target.value as any}))} style={s.input}>
+                  <option value="size">size (256x256)</option>
+                  <option value="aspect_ratio">aspect_ratio (16:9)</option>
+                  <option value="resolution">resolution (2k)</option>
+                  <option value="custom">自訂</option>
+                </select>
                 <div style={s.checkRow}>
                   <label style={s.checkLabel}>
                     <input
@@ -177,6 +184,7 @@ export default function AdminProviders() {
                   <tr>
                     <th style={s.th}>{t('providers.name')}</th>
                     <th style={s.th}>{t('providers.baseUrl')}</th>
+                    <th style={s.th}>尺寸格式</th>
                     <th style={s.th}>{t('providers.status')}</th>
                     <th style={s.th}>{t('common.edit')}</th>
                   </tr>
@@ -186,6 +194,7 @@ export default function AdminProviders() {
                     <tr key={p.id} style={s.tr}>
                       <td style={s.td}>{p.name}</td>
                       <td style={{...s.td, fontSize: 12, color: '#94a3b8'}}>{p.baseUrl}</td>
+                      <td style={s.td}>{p.sizeFormat || 'size'}</td>
                       <td style={s.td}>
                         <button
                           onClick={() => handleToggle(p)}

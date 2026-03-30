@@ -110,6 +110,31 @@ function normalizeApiResponse(data: any) {
   return data;
 }
 
+function convertSizeToProvider(size: string, sizeFormat?: string): Record<string, unknown> {
+  const sizeMap: Record<string, { width: number; height: number }> = {
+    '256x256': { width: 256, height: 256 },
+    '512x512': { width: 512, height: 512 },
+    '1024x1024': { width: 1024, height: 1024 },
+    '1024x1792': { width: 1024, height: 1792 },
+    '1792x1024': { width: 1792, height: 1024 },
+  };
+
+  const dims = sizeMap[size] || { width: 1024, height: 1024 };
+
+  if (sizeFormat === 'aspect_ratio') {
+    const ratio = dims.width / dims.height;
+    if (ratio > 1) return { aspect_ratio: '16:9' };
+    if (ratio < 1) return { aspect_ratio: '9:16' };
+    return { aspect_ratio: '1:1' };
+  }
+  if (sizeFormat === 'resolution') {
+    if (dims.width >= 1024) return { resolution: '2k' };
+    if (dims.width >= 512) return { resolution: '1k' };
+    return { resolution: '512' };
+  }
+  return { size };
+}
+
 if (typeof setInterval !== 'undefined') {
   setInterval(cleanupExpiredRecords, 300000);
 }
@@ -190,7 +215,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     body.response_format = 'b64_json';
     if (aspectRatio) body.aspect_ratio = aspectRatio;
   } else {
-    if (size) body.size = size;
+    if (size) {
+      const provider = modelConfig?.providerId ? providers.find(p => p.id === modelConfig.providerId) : null;
+      const sizeParams = convertSizeToProvider(size, provider?.sizeFormat);
+      Object.assign(body, sizeParams);
+    }
     if (n) body.n = Number(n);
   }
 
