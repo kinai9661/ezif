@@ -28,6 +28,10 @@ export interface AppSettings {
   logo: string;
   primaryColor: string;
   secondaryColor: string;
+  rateLimitPerDay: number;
+  rateLimitPerHour: number;
+  ipWhitelist: string[];
+  enableIpWhitelist: boolean;
 }
 
 export const DEFAULT_PROVIDERS: Provider[] = [];
@@ -50,4 +54,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   logo: '',
   primaryColor: '#007bff',
   secondaryColor: '#6c757d',
+  rateLimitPerDay: 1000,
+  rateLimitPerHour: 100,
+  ipWhitelist: [],
+  enableIpWhitelist: false,
 };

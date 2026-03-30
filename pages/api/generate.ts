@@ -6,7 +6,29 @@ const requestStore = new Map<string, {
   minuteReset: number;
   burstCount: number;
   burstReset: number;
+  hourCount: number;
+  hourReset: number;
+  dayCount: number;
+  dayReset: number;
 }>();
+
+function isIpInWhitelist(ip: string, whitelist: string[]): boolean {
+  if (whitelist.length === 0) return true;
+  for (const entry of whitelist) {
+    if (entry.includes('/')) {
+      const [network, bits] = entry.split('/');
+      const mask = (0xffffffff << (32 - parseInt(bits))) >>> 0;
+      const ipParts = ip.split('.').map(Number);
+      const networkParts = network.split('.').map(Number);
+      const ipNum = ((ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3]) >>> 0;
+      const networkNum = ((networkParts[0] << 24) | (networkParts[1] << 16) | (networkParts[2] << 8) | networkParts[3]) >>> 0;
+      if ((ipNum & mask) === (networkNum & mask)) return true;
+    } else if (ip === entry) {
+      return true;
+    }
+  }
+  return false;
+}
 
 function getClientIP(req: NextApiRequest): string {
   const forwarded = req.headers['x-forwarded-for'];
@@ -18,19 +40,25 @@ function checkRateLimit(
   clientId: string,
   perMinute: number,
   burstLimit: number,
-  burstWindow: number
+  burstWindow: number,
+  perHour: number,
+  perDay: number
 ): { allowed: boolean; retryAfter?: number; message?: string } {
   const now = Date.now();
   const minuteWindow = 60000;
+  const hourWindow = 3600000;
+  const dayWindow = 86400000;
 
   let record = requestStore.get(clientId);
   if (!record) {
-    record = { minuteCount: 0, minuteReset: now + minuteWindow, burstCount: 0, burstReset: now + burstWindow };
+    record = { minuteCount: 0, minuteReset: now + minuteWindow, burstCount: 0, burstReset: now + burstWindow, hourCount: 0, hourReset: now + hourWindow, dayCount: 0, dayReset: now + dayWindow };
     requestStore.set(clientId, record);
   }
 
   if (now > record.minuteReset) { record.minuteCount = 0; record.minuteReset = now + minuteWindow; }
   if (now > record.burstReset) { record.burstCount = 0; record.burstReset = now + burstWindow; }
+  if (now > record.hourReset) { record.hourCount = 0; record.hourReset = now + hourWindow; }
+  if (now > record.dayReset) { record.dayCount = 0; record.dayReset = now + dayWindow; }
 
   if (record.burstCount >= burstLimit) {
     const retryAfter = Math.ceil((record.burstReset - now) / 1000);
@@ -40,9 +68,19 @@ function checkRateLimit(
     const retryAfter = Math.ceil((record.minuteReset - now) / 1000);
     return { allowed: false, retryAfter, message: `已達到每分鐘請求上限（${perMinute} 次），請等待 ${retryAfter} 秒後再試` };
   }
+  if (record.hourCount >= perHour) {
+    const retryAfter = Math.ceil((record.hourReset - now) / 1000);
+    return { allowed: false, retryAfter, message: `已達到每小時請求上限（${perHour} 次），請等待 ${retryAfter} 秒後再試` };
+  }
+  if (record.dayCount >= perDay) {
+    const retryAfter = Math.ceil((record.dayReset - now) / 1000);
+    return { allowed: false, retryAfter, message: `已達到每日請求上限（${perDay} 次），請等待 ${retryAfter} 秒後再試` };
+  }
 
   record.minuteCount++;
   record.burstCount++;
+  record.hourCount++;
+  record.dayCount++;
   return { allowed: true };
 }
 
@@ -68,12 +106,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Load settings, models, and providers from KV
   const [settings, models, providers] = await Promise.all([getSettings(), getModels(), getProviders()]);
 
-  const clientId = getClientIP(req);
+  const clientIp = getClientIP(req);
+  
+  // Check IP whitelist if enabled
+  if (settings.enableIpWhitelist && !isIpInWhitelist(clientIp, settings.ipWhitelist)) {
+    return res.status(403).json({ error: 'IP 地址不在白名單中' });
+  }
+
   const rateLimitResult = checkRateLimit(
-    clientId,
+    clientIp,
     settings.rateLimitPerMinute,
     settings.rateLimitBurst,
-    settings.rateLimitBurstWindow
+    settings.rateLimitBurstWindow,
+    settings.rateLimitPerHour,
+    settings.rateLimitPerDay
   );
 
   if (!rateLimitResult.allowed) {
@@ -144,7 +190,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(response.status).json({ error: data?.error?.message || 'API error' });
     }
 
-    const record = requestStore.get(clientId);
+    const record = requestStore.get(clientIp);
     if (record) {
       res.setHeader('X-RateLimit-Limit', settings.rateLimitPerMinute.toString());
       res.setHeader('X-RateLimit-Remaining', Math.max(0, settings.rateLimitPerMinute - record.minuteCount).toString());

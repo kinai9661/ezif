@@ -40,6 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         logo: typeof body.logo === 'string' ? body.logo.trim() : current.logo,
         primaryColor: typeof body.primaryColor === 'string' ? body.primaryColor.trim() : current.primaryColor,
         secondaryColor: typeof body.secondaryColor === 'string' ? body.secondaryColor.trim() : current.secondaryColor,
+        rateLimitPerDay: Number(body.rateLimitPerDay) || current.rateLimitPerDay,
+        rateLimitPerHour: Number(body.rateLimitPerHour) || current.rateLimitPerHour,
+        ipWhitelist: Array.isArray(body.ipWhitelist) ? body.ipWhitelist.map((ip: string) => ip.trim()).filter((ip: string) => ip) : current.ipWhitelist,
+        enableIpWhitelist: typeof body.enableIpWhitelist === 'boolean' ? body.enableIpWhitelist : current.enableIpWhitelist,
       };
 
       if (!updated.apiBaseUrl) return res.status(400).json({ error: 'API 地址不能為空' });

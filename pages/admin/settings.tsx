@@ -14,6 +14,10 @@ interface SettingsForm {
   logo: string;
   primaryColor: string;
   secondaryColor: string;
+  rateLimitPerDay: number;
+  rateLimitPerHour: number;
+  ipWhitelist: string[];
+  enableIpWhitelist: boolean;
 }
 
 const defaultForm: SettingsForm = {
@@ -27,6 +31,10 @@ const defaultForm: SettingsForm = {
   logo: '',
   primaryColor: '#007bff',
   secondaryColor: '#6c757d',
+  rateLimitPerDay: 1000,
+  rateLimitPerHour: 100,
+  ipWhitelist: [],
+  enableIpWhitelist: false,
 };
 
 export default function AdminSettings() {
@@ -182,6 +190,34 @@ export default function AdminSettings() {
                   </div>
                 </div>
               </div>
+            </section>
+
+            <section style={s.section}>
+              <h2 style={s.h2}>{t('settings.advancedRateLimit')}</h2>
+              <div style={s.row3}>
+                <div>
+                  <label style={s.label}>{t('settings.perDay')}</label>
+                  <input type="number" value={form.rateLimitPerDay} onChange={set('rateLimitPerDay' as keyof SettingsForm)} style={s.input} min={1} />
+                </div>
+                <div>
+                  <label style={s.label}>{t('settings.perHour')}</label>
+                  <input type="number" value={form.rateLimitPerHour} onChange={set('rateLimitPerHour' as keyof SettingsForm)} style={s.input} min={1} />
+                </div>
+              </div>
+
+              <div style={s.checkRow}>
+                <label style={s.checkLabel}>
+                  <input type="checkbox" checked={form.enableIpWhitelist} onChange={e => setForm(f => ({...f, enableIpWhitelist: e.target.checked}))} />
+                  {' '}{t('settings.enableIpWhitelist')}
+                </label>
+              </div>
+              {form.enableIpWhitelist && (
+                <>
+                  <label style={s.label}>{t('settings.ipWhitelist')}</label>
+                  <textarea style={{...s.input, minHeight: 100, fontFamily: 'monospace', fontSize: 12}} placeholder="192.168.1.1&#10;10.0.0.0/8&#10;172.16.0.0/12" value={form.ipWhitelist.join('\n')} onChange={e => setForm(f => ({...f, ipWhitelist: e.target.value.split('\n').map(ip => ip.trim()).filter(ip => ip)}))} />
+                  <p style={s.hint}>{t('settings.ipWhitelistHint')}</p>
+                </>
+              )}
             </section>
 
             {error && <p style={s.error}>{error}</p>}
