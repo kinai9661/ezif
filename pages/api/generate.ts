@@ -257,7 +257,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-     const response = await fetch(`${resolvedBaseUrl}/v1/images/generations`, {
+     const endpoint = resolvedBaseUrl.endsWith('/v1')
+       ? `${resolvedBaseUrl}/images/generations`
+       : `${resolvedBaseUrl}/v1/images/generations`;
+     
+     const response = await fetch(endpoint, {
        method: 'POST',
        headers: {
          'Content-Type': 'application/json',
