@@ -24,6 +24,10 @@ export interface ModelConfig {
   isGrok: boolean;
   order: number;
   providerId?: string; // 關聯的供應商 ID，若未設定則使用全域設定
+  supportedQualities?: string[]; // 支援的質量等級
+  supportedStylePresets?: string[]; // 支援的風格預設
+  defaultQuality?: string; // 預設質量等級
+  defaultStylePreset?: string; // 預設風格預設
 }
 
 export interface AppSettings {
@@ -74,6 +78,9 @@ export interface StyleConfig {
   order: number;
   supportedModels?: string[]; // 支援的模型 ID
 }
+
+export const NANO_BANANA_QUALITIES = ['standard', 'high', 'ultra'];
+export const NANO_BANANA_STYLE_PRESETS = ['photorealistic', 'anime', 'oil_painting', 'watercolor', 'sketch', 'digital_art'];
 
 export const DEFAULT_PROVIDERS: Provider[] = [];
 

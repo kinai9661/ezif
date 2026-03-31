@@ -18,6 +18,14 @@ const SIZES = [
   { value: '1792x1024', label: '1792x1024' },
 ];
 
+const STYLES = [
+  { value: '', label: '預設' },
+  { value: 'professional', label: '專業' },
+  { value: 'artistic', label: '藝術' },
+  { value: 'realistic', label: '寫實' },
+  { value: 'cartoon', label: '卡通' },
+];
+
 const TEMPLATES = [
   { label: '攝影', prompt: 'Professional photography, ultra realistic, 8K, dramatic lighting' },
   { label: '插畫', prompt: 'Digital illustration, vibrant colors, highly detailed, artstation' },
@@ -43,6 +51,7 @@ const i18n = {
     settings: '生成設定',
     model: '模型',
     size: '尺寸',
+    style: '風格',
     quantity: '數量 (1-4)',
     generate: '✨ 生成圖片',
     generating: '生成中...',
@@ -68,6 +77,17 @@ const i18n = {
     remaining: '剩餘',
     of: '/',
     times: '次',
+    quality: '生成質量',
+    qualityStandard: '標準',
+    qualityHigh: '高',
+    qualityUltra: '超高',
+    stylePreset: '風格預設',
+    stylePhotorealistic: '寫實',
+    styleAnime: '動漫',
+    styleOilPainting: '油畫',
+    styleWatercolor: '水彩',
+    styleSketch: '素描',
+    styleDigitalArt: '數字藝術',
   },
   'en': {
     apiKey: 'API Key',
@@ -84,6 +104,7 @@ const i18n = {
     settings: 'Generation Settings',
     model: 'Model',
     size: 'Size',
+    style: 'Style',
     quantity: 'Quantity (1-4)',
     generate: '✨ Generate Image',
     generating: 'Generating...',
@@ -109,6 +130,17 @@ const i18n = {
     remaining: 'Remaining',
     of: '/',
     times: 'times',
+    quality: 'Generation Quality',
+    qualityStandard: 'Standard',
+    qualityHigh: 'High',
+    qualityUltra: 'Ultra',
+    stylePreset: 'Style Preset',
+    stylePhotorealistic: 'Photorealistic',
+    styleAnime: 'Anime',
+    styleOilPainting: 'Oil Painting',
+    styleWatercolor: 'Watercolor',
+    styleSketch: 'Sketch',
+    styleDigitalArt: 'Digital Art',
   },
 };
 

@@ -135,6 +135,28 @@ function convertSizeToProvider(size: string, sizeFormat?: string): Record<string
   return { size };
 }
 
+function convertQualityToNanoBanana(quality?: string): Record<string, unknown> {
+ const qualityMap: Record<string, number> = {
+   'standard': 25,
+   'high': 40,
+   'ultra': 50,
+ };
+ return { num_inference_steps: qualityMap[quality || 'standard'] || 25 };
+}
+
+function convertStylePresetToNanoBanana(stylePreset?: string): Record<string, unknown> {
+ const styleMap: Record<string, string> = {
+   'photorealistic': 'photorealistic',
+   'anime': 'anime',
+   'oil_painting': 'oil_painting',
+   'watercolor': 'watercolor',
+   'sketch': 'sketch',
+   'digital_art': 'digital_art',
+ };
+ if (!stylePreset || !styleMap[stylePreset]) return {};
+ return { style_preset: styleMap[stylePreset] };
+}
+
 if (typeof setInterval !== 'undefined') {
   setInterval(cleanupExpiredRecords, 300000);
 }

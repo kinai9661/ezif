@@ -59,7 +59,13 @@
     "added": "Model added",
     "updated": "Model updated",
     "deleted": "Model deleted",
-    "globalSettings": "(Use Global Settings)"
+    "globalSettings": "(Use Global Settings)",
+    "quality": "Generation Quality",
+    "stylePreset": "Style Preset",
+    "supportedQualities": "Supported Qualities",
+    "supportedStylePresets": "Supported Style Presets",
+    "defaultQuality": "Default Quality",
+    "defaultStylePreset": "Default Style Preset"
   },
   "providers": {
     "title": "API Providers",

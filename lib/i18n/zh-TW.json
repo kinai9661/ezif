@@ -59,7 +59,13 @@
     "added": "已新增",
     "updated": "已更新",
     "deleted": "已刪除",
-    "globalSettings": "（使用全域設定）"
+    "globalSettings": "（使用全域設定）",
+    "quality": "生成質量",
+    "stylePreset": "風格預設",
+    "supportedQualities": "支援的質量等級",
+    "supportedStylePresets": "支援的風格預設",
+    "defaultQuality": "預設質量",
+    "defaultStylePreset": "預設風格"
   },
   "providers": {
     "title": "API 供應商",
