@@ -266,10 +266,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
        body: JSON.stringify(body),
      });
 
-    const data = await response.json();
+    // Check response status first before parsing JSON
     if (!response.ok) {
-      return res.status(response.status).json({ error: data?.error?.message || 'API error' });
+      const contentType = response.headers.get('content-type');
+      let errorMessage = 'API error';
+      
+      try {
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData?.error?.message || errorData?.error || 'API error';
+        } else {
+          // If response is HTML or plain text, get first 200 chars for debugging
+          const text = await response.text();
+          errorMessage = `API returned ${response.status}: ${text.substring(0, 200)}`;
+          console.error(`[API Error] Status: ${response.status}, URL: ${resolvedBaseUrl}/v1/images/generations, Response: ${text.substring(0, 500)}`);
+        }
+      } catch (parseErr) {
+        console.error(`[Parse Error] Failed to parse error response:`, parseErr);
+        errorMessage = `API returned ${response.status} with unparseable response`;
+      }
+      
+      return res.status(response.status).json({ error: errorMessage });
     }
+
+    const data = await response.json();
 
     const record = requestStore.get(clientIp);
     if (record) {
@@ -280,6 +300,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(normalizeApiResponse(data));
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`[Generate Error] ${message}`, err);
     return res.status(500).json({ error: message });
   }
 }
