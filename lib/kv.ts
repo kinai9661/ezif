@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { ModelConfig, AppSettings, Provider, AdminUser, AuditLog, StyleConfig, DEFAULT_MODELS, DEFAULT_SETTINGS, DEFAULT_PROVIDERS, DEFAULT_STYLES } from './types';
+import { ModelConfig, AppSettings, Provider, AdminUser, AuditLog, StyleConfig, ImageRecord, BatchJob, ShareLink, DEFAULT_MODELS, DEFAULT_SETTINGS, DEFAULT_PROVIDERS, DEFAULT_STYLES } from './types';
 
 function getSql() {
   const url = process.env.POSTGRES_URL ||
@@ -143,4 +143,86 @@ export async function getStyles(): Promise<StyleConfig[]> {
 
 export async function setStyles(styles: StyleConfig[]): Promise<void> {
   await dbSet('styles', JSON.stringify(styles));
+}
+
+export async function getImageRecords(limit: number = 100): Promise<ImageRecord[]> {
+  try {
+    const data = await dbGet('image_records');
+    if (!data) return [];
+    return JSON.parse(data).slice(-limit);
+  } catch {}
+  return [];
+}
+
+export async function addImageRecord(record: ImageRecord): Promise<void> {
+  const records = await getImageRecords(1000);
+  records.push(record);
+  await dbSet('image_records', JSON.stringify(records));
+}
+
+export async function updateImageRecord(id: string, updates: Partial<ImageRecord>): Promise<void> {
+  const records = await getImageRecords(1000);
+  const idx = records.findIndex(r => r.id === id);
+  if (idx >= 0) {
+    records[idx] = { ...records[idx], ...updates };
+    await dbSet('image_records', JSON.stringify(records));
+  }
+}
+
+export async function deleteImageRecord(id: string): Promise<void> {
+  const records = await getImageRecords(1000);
+  await dbSet('image_records', JSON.stringify(records.filter(r => r.id !== id)));
+}
+
+export async function getBatchJobs(limit: number = 50): Promise<BatchJob[]> {
+  try {
+    const data = await dbGet('batch_jobs');
+    if (!data) return [];
+    return JSON.parse(data).slice(-limit);
+  } catch {}
+  return [];
+}
+
+export async function addBatchJob(job: BatchJob): Promise<void> {
+  const jobs = await getBatchJobs(500);
+  jobs.push(job);
+  await dbSet('batch_jobs', JSON.stringify(jobs));
+}
+
+export async function updateBatchJob(id: string, updates: Partial<BatchJob>): Promise<void> {
+  const jobs = await getBatchJobs(500);
+  const idx = jobs.findIndex(j => j.id === id);
+  if (idx >= 0) {
+    jobs[idx] = { ...jobs[idx], ...updates };
+    await dbSet('batch_jobs', JSON.stringify(jobs));
+  }
+}
+
+export async function getShareLinks(): Promise<ShareLink[]> {
+  try {
+    const data = await dbGet('share_links');
+    if (!data) return [];
+    return JSON.parse(data);
+  } catch {}
+  return [];
+}
+
+export async function addShareLink(link: ShareLink): Promise<void> {
+  const links = await getShareLinks();
+  links.push(link);
+  await dbSet('share_links', JSON.stringify(links));
+}
+
+export async function getShareLink(token: string): Promise<ShareLink | null> {
+  const links = await getShareLinks();
+  return links.find(l => l.token === token) || null;
+}
+
+export async function updateShareLink(token: string, updates: Partial<ShareLink>): Promise<void> {
+  const links = await getShareLinks();
+  const idx = links.findIndex(l => l.token === token);
+  if (idx >= 0) {
+    links[idx] = { ...links[idx], ...updates };
+    await dbSet('share_links', JSON.stringify(links));
+  }
 }

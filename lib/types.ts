@@ -79,6 +79,40 @@ export interface StyleConfig {
   supportedModels?: string[]; // 支援的模型 ID
 }
 
+export interface ImageRecord {
+  id: string;
+  prompt: string;
+  imageUrl: string;
+  modelId: string;
+  size?: string;
+  style?: string;
+  quality?: string;
+  createdAt: number;
+  isFavorite: boolean;
+  shareToken?: string;
+}
+
+export interface BatchJob {
+  id: string;
+  prompts: string[];
+  modelId: string;
+  size?: string;
+  style?: string;
+  quality?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  results: ImageRecord[];
+  createdAt: number;
+  completedAt?: number;
+}
+
+export interface ShareLink {
+  token: string;
+  imageId: string;
+  createdAt: number;
+  expiresAt?: number;
+  viewCount: number;
+}
+
 export const NANO_BANANA_QUALITIES = ['standard', 'high', 'ultra'];
 export const NANO_BANANA_STYLE_PRESETS = ['photorealistic', 'anime', 'oil_painting', 'watercolor', 'sketch', 'digital_art'];
 
