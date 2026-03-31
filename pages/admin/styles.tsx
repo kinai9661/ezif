@@ -1,9 +1,14 @@
 import { useEffect, useState, FormEvent } from 'react';
+import { useRouter } from 'next/router';
 import { useTranslation } from '../../lib/useTranslation';
 import { StyleConfig, ModelConfig } from '../../lib/types';
 
 export default function AdminStyles() {
-  const { t, locale, handleChangeLanguage } = useTranslation();
+  const router = useRouter();
+  const { t, locale } = useTranslation();
+  const handleChangeLanguage = (newLocale: string) => {
+    router.push(router.asPath, router.asPath, { locale: newLocale });
+  };
   const [styles, setStyles] = useState<StyleConfig[]>([]);
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [form, setForm] = useState({ name: '', value: '', description: '', supportedModels: [] as string[] });
