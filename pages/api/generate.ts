@@ -173,7 +173,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(429).json({ error: rateLimitResult.message, retryAfter: rateLimitResult.retryAfter });
   }
 
-  const { prompt, model, size, n, useEnvKey, aspectRatio } = req.body;
+  const { prompt, model, size, n, useEnvKey, aspectRatio, style } = req.body;
 
   const serverApiKey = settings.apiKey || process.env.API_KEY;
   const apiKey = (useEnvKey && settings.enableEnvKey && serverApiKey) ? serverApiKey : req.body.apiKey;
@@ -224,11 +224,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     if (aspectRatio) body.aspect_ratio = aspectRatio;
     if (n) body.n = Number(n);
+    if (style) body.style = style;
     
     if (provider?.name?.toLowerCase().includes('supabase') || modelName.includes('nano banana')) {
       body.response_format = 'url';
       if (req.body.resolution) body.resolution = req.body.resolution;
       if (aspectRatio) body.aspect_ratio = aspectRatio;
+      if (style) body.style = style;
     }
   }
 

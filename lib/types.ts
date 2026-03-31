@@ -65,7 +65,24 @@ export interface AuditLog {
   ipAddress: string;
 }
 
+export interface StyleConfig {
+  id: string;
+  name: string;
+  value: string;
+  description?: string;
+  enabled: boolean;
+  order: number;
+  supportedModels?: string[]; // 支援的模型 ID
+}
+
 export const DEFAULT_PROVIDERS: Provider[] = [];
+
+export const DEFAULT_STYLES: StyleConfig[] = [
+  { id: '1', name: 'Professional', value: 'professional', description: '專業風格', enabled: true, order: 0 },
+  { id: '2', name: 'Artistic', value: 'artistic', description: '藝術風格', enabled: true, order: 1 },
+  { id: '3', name: 'Realistic', value: 'realistic', description: '寫實風格', enabled: true, order: 2 },
+  { id: '4', name: 'Cartoon', value: 'cartoon', description: '卡通風格', enabled: true, order: 3 },
+];
 
 export const DEFAULT_MODELS: ModelConfig[] = [
   { id: '1', value: 'gpt-image-1', label: 'GPT Image 1', enabled: true, isGrok: false, order: 0 },

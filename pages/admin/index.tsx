@@ -51,6 +51,7 @@ export default function AdminDashboard() {
           <Link href="/admin" style={s.navLink}>{t('common.dashboard')}</Link>
           <Link href="/admin/models" style={s.navLink}>{t('common.models')}</Link>
           <Link href="/admin/providers" style={s.navLink}>{t('common.providers')}</Link>
+          <Link href="/admin/styles" style={s.navLink}>風格</Link>
           <Link href="/admin/settings" style={s.navLink}>{t('common.settings')}</Link>
           <Link href="/" style={s.navLink}>{t('common.dashboard')}</Link>
           <select value={locale} onChange={e => handleChangeLanguage(e.target.value)} style={s.langSelect}>

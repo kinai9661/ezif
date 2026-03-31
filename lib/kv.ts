@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { ModelConfig, AppSettings, Provider, AdminUser, AuditLog, DEFAULT_MODELS, DEFAULT_SETTINGS, DEFAULT_PROVIDERS } from './types';
+import { ModelConfig, AppSettings, Provider, AdminUser, AuditLog, StyleConfig, DEFAULT_MODELS, DEFAULT_SETTINGS, DEFAULT_PROVIDERS, DEFAULT_STYLES } from './types';
 
 function getSql() {
   const url = process.env.POSTGRES_URL ||
@@ -126,4 +126,21 @@ export async function addAuditLog(log: AuditLog): Promise<void> {
   const logs = await getAuditLogs(1000);
   logs.push(log);
   await dbSet('audit_logs', JSON.stringify(logs.slice(-1000)));
+}
+
+export async function getStyles(): Promise<StyleConfig[]> {
+  try {
+    const raw = await dbGet('styles');
+    if (raw) {
+      const styles: StyleConfig[] = JSON.parse(raw);
+      if (Array.isArray(styles) && styles.length > 0) {
+        return styles.sort((a, b) => a.order - b.order);
+      }
+    }
+  } catch {}
+  return DEFAULT_STYLES;
+}
+
+export async function setStyles(styles: StyleConfig[]): Promise<void> {
+  await dbSet('styles', JSON.stringify(styles));
 }
