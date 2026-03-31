@@ -129,6 +129,7 @@ export default function AdminProviders() {
                   <div style={s.templateBtns}>
                     <button type="button" onClick={() => applyTemplate('supabase')} style={{...s.templateBtn, background: selectedTemplate === 'supabase' ? '#818cf8' : '#334155'}}>Supabase</button>
                     <button type="button" onClick={() => applyTemplate('openai')} style={{...s.templateBtn, background: selectedTemplate === 'openai' ? '#818cf8' : '#334155'}}>OpenAI</button>
+                    <button type="button" onClick={() => applyTemplate('frenix')} style={{...s.templateBtn, background: selectedTemplate === 'frenix' ? '#818cf8' : '#334155'}}>Frenix</button>
                     <button type="button" onClick={() => applyTemplate('custom')} style={{...s.templateBtn, background: selectedTemplate === 'custom' ? '#818cf8' : '#334155'}}>自訂</button>
                   </div>
                 </div>
