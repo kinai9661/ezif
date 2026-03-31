@@ -158,6 +158,7 @@ interface ApiResp {
 export default function Home() {
    const router = useRouter();
    const [locale, setLocale] = useState<'zh-TW' | 'en'>('zh-TW');
+   const [sidebarOpen, setSidebarOpen] = useState(true);
    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
    const t = (key: keyof typeof i18n['zh-TW']) => i18n[locale][key];
    
@@ -318,9 +319,10 @@ export default function Home() {
         .hdr-r{display:flex;align-items:center;gap:10px}
         .rbadge{font-size:.72rem;color:#64748b;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:3px 10px}
         .rbadge.low{color:#f87171;border-color:rgba(248,113,113,.3)}
-        .layout{display:grid;grid-template-columns:350px 1fr;min-height:calc(100vh - 56px)}
-        @media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid rgba(255,255,255,.06);position:static;height:auto;overflow-y:visible}}
-        .sidebar{border-right:1px solid ${theme === 'dark' ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.1)'};padding:18px;overflow-y:auto;position:sticky;top:56px;height:calc(100vh - 56px);background:${theme === 'dark' ? 'rgba(10,8,18,.5)' : '#fff'}}
+        .layout{display:grid;grid-template-columns:${sidebarOpen ? '350px' : '0'} 1fr;min-height:calc(100vh - 56px);transition:grid-template-columns .3s ease}
+        @media(max-width:1024px){.layout{grid-template-columns:${sidebarOpen ? '280px' : '0'} 1fr}}
+        @media(max-width:768px){.layout{grid-template-columns:1fr}.sidebar{position:fixed;left:0;top:56px;width:280px;height:calc(100vh - 56px);z-index:50;transform:translateX(${sidebarOpen ? '0' : '-100%'});transition:transform .3s ease;border-right:1px solid rgba(255,255,255,.06)}.sidebar-overlay{display:${sidebarOpen ? 'block' : 'none'};position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;top:56px}}
+        .sidebar{border-right:1px solid ${theme === 'dark' ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.1)'};padding:18px;overflow-y:auto;position:sticky;top:56px;height:calc(100vh - 56px);background:${theme === 'dark' ? 'rgba(10,8,18,.7)' : '#fafafa'};backdrop-filter:blur(10px)}
         .sidebar::-webkit-scrollbar{width:4px}.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
         .slabel{font-size:.67rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6366f1;margin-bottom:7px;margin-top:16px;display:flex;align-items:center;gap:6px}
         .slabel:first-child{margin-top:0}.slabel::after{content:'';flex:1;height:1px;background:rgba(99,102,241,.2)}
@@ -350,9 +352,15 @@ export default function Home() {
         .card{background:${theme === 'dark' ? 'rgba(255,255,255,.04)' : '#fff'};border:1px solid ${theme === 'dark' ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.1)'};border-radius:14px;padding:18px;margin-bottom:18px}
         .ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
         .ct{font-size:.82rem;font-weight:700;color:${theme === 'dark' ? '#c4b5fd' : '#7c3aed'};letter-spacing:.02em}
-        .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-        .icard{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;transition:transform .15s,border-color .15s;cursor:pointer}.icard:hover{transform:translateY(-2px);border-color:rgba(124,58,237,.4)}
-        .icard img{width:100%;display:block;aspect-ratio:1;object-fit:cover}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideIn{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+        .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;animation:fadeIn .4s ease-out}
+        @media(max-width:1024px){.igrid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+        @media(max-width:768px){.igrid{grid-template-columns:repeat(2,1fr)}}
+        .icard{background:${theme === 'dark' ? 'rgba(30,27,75,.4)' : 'rgba(124,58,237,.05)'};border:1px solid ${theme === 'dark' ? 'rgba(167,139,250,.15)' : 'rgba(124,58,237,.2)'};border-radius:12px;overflow:hidden;transition:all .25s cubic-bezier(.4,0,.2,1);cursor:pointer;animation:slideIn .3s ease-out;backdrop-filter:blur(10px)}.icard:hover{transform:translateY(-4px) scale(1.02);border-color:rgba(124,58,237,.5);box-shadow:0 12px 24px rgba(124,58,237,.2);background:${theme === 'dark' ? 'rgba(30,27,75,.6)' : 'rgba(124,58,237,.1)'}}
+        .icard img{width:100%;display:block;aspect-ratio:1;object-fit:cover;transition:transform .3s ease}
+        .icard:hover img{transform:scale(1.05)}
         .ifoot{padding:8px 10px;display:flex;justify-content:space-between;align-items:center}
         .ilabel{font-size:.75rem;color:#94a3b8}
         .dlbtn{background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#a78bfa;border-radius:7px;padding:4px 10px;font-size:.75rem;cursor:pointer;transition:background .15s}.dlbtn:hover{background:rgba(167,139,250,.25)}
@@ -377,9 +385,16 @@ export default function Home() {
         .hrow{display:flex;gap:6px;margin-bottom:6px;align-items:center}
         .hbtn{flex:1;padding:6px 10px;font-size:.75rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;color:#94a3b8;text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hbtn:hover{background:rgba(255,255,255,.1);color:#e2e8f0}
         .hclear{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#f87171;border-radius:6px;padding:6px 10px;font-size:.72rem;cursor:pointer}.hclear:hover{background:rgba(239,68,68,.2)}
+        .sidebar-toggle{display:none}
+        @media(max-width:768px){.sidebar-toggle{display:block;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:6px;color:#e2e8f0;font-size:1.2rem;cursor:pointer;padding:6px 10px;transition:all .15s;margin-right:auto}.sidebar-toggle:hover{background:rgba(255,255,255,.1)}}
+        .sidebar-overlay{display:none}
+        @media(max-width:768px){.sidebar-overlay{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;top:56px}}
       `}</style>
 
       <header className="hdr">
+        <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          {sidebarOpen ? '✕' : '☰'}
+        </button>
         <div className="logo">AI Image Generator</div>
         <div className="hdr-r">
           {remaining !== null && (
@@ -403,6 +418,7 @@ export default function Home() {
         </div>
       </header>
 
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       <div className="layout">
         <aside className="sidebar">
           <div className="slabel">API {t('settings')}</div>
