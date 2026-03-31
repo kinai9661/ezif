@@ -19,6 +19,7 @@ export default function AdminProviders() {
   const TEMPLATES = {
     supabase: { name: 'Supabase', baseUrl: 'https://gjosebfngzowbcrwzxnw.supabase.co/functions/v1', apiKey: '', sizeFormat: 'aspect_ratio' as const, supportedSizes: [{ label: '1:1', value: '1:1' }, { label: '16:9', value: '16:9' }, { label: '9:16', value: '9:16' }] },
     openai: { name: 'OpenAI', baseUrl: 'https://api.openai.com', apiKey: '', sizeFormat: 'size' as const, supportedSizes: [{ label: '256x256', value: '256x256' }, { label: '512x512', value: '512x512' }, { label: '1024x1024', value: '1024x1024' }] },
+    frenix: { name: 'Frenix', baseUrl: 'https://api.frenix.sh/v1', apiKey: '', sizeFormat: 'size' as const, supportedSizes: [{ label: '256x256', value: '256x256' }, { label: '512x512', value: '512x512' }, { label: '1024x1024', value: '1024x1024' }, { label: '1024x1792', value: '1024x1792' }, { label: '1792x1024', value: '1792x1024' }] },
     custom: { name: '', baseUrl: '', apiKey: '', sizeFormat: 'size' as const, supportedSizes: [] },
   };
 
